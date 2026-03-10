@@ -4,19 +4,22 @@ let summarizer;
 let extractedText = ""; 
 const DEFAULT_SUBJECTS = ["Math", "Physique", "Chimie", "Informatique", "Histoire", "Géographie", "Anglais", "Français", "Malagasy", "SVT"];
 
-// Configuration du lecteur PDF
+// Config PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 async function initIA() {
     const status = document.getElementById('status-ia');
     try {
+        // Chargement du modèle
         summarizer = await pipeline('summarization', 'Xenova/distilbart-cnn-6-6');
-        status.innerText = "✅ IA Locale prête";
+        status.innerText = "✅ IA prête à l'emploi";
         status.style.color = "#00b894";
-    } catch (e) { status.innerText = "❌ IA indisponible"; }
+    } catch (e) {
+        status.innerText = "❌ Erreur de chargement IA";
+        console.error("IA Error:", e);
+    }
 }
 
-// Fonction pour extraire le texte réel du PDF
 async function extractTextFromPDF(file) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -24,9 +27,10 @@ async function extractTextFromPDF(file) {
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
+        // On nettoie un peu le texte pour aider l'IA
         fullText += content.items.map(item => item.str).join(" ") + " ";
     }
-    return fullText;
+    return fullText.replace(/\s+/g, ' ').trim(); // Nettoyage des espaces doubles
 }
 
 window.handleFileUpload = async (e) => {
@@ -34,49 +38,80 @@ window.handleFileUpload = async (e) => {
     const statusContainer = document.getElementById('upload-status-container');
     const fileInfo = document.getElementById('file-info');
     const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
     const btnAi = document.getElementById('btn-ai');
 
     if (file && file.type === "application/pdf") {
-        fileInfo.innerText = `Lecture de : ${file.name}...`;
         statusContainer.classList.remove('hidden');
-        progressFill.style.width = "40%";
+        btnAi.disabled = true;
+        
+        // Simulation fluide du chargement
+        let prog = 0;
+        const loader = setInterval(() => {
+            if (prog < 90) {
+                prog += 5;
+                progressFill.style.width = prog + "%";
+                progressText.innerText = prog + "%";
+            }
+        }, 100);
 
         try {
             extractedText = await extractTextFromPDF(file);
+            clearInterval(loader); // Stop simulation
+            
+            // Finition à 100%
             progressFill.style.width = "100%";
-            fileInfo.innerText = `Prêt : ${file.name} (${(file.size/1024/1024).toFixed(2)} Mo)`;
+            progressText.innerText = "100%";
+            fileInfo.innerText = `${file.name} (${(file.size/1024/1024).toFixed(2)} Mo)`;
+            
             btnAi.disabled = false;
-        } catch (err) { alert("Erreur lecture PDF"); }
+            btnAi.innerText = "🚀 Analyser maintenant";
+        } catch (err) {
+            clearInterval(loader);
+            alert("Erreur de lecture du PDF");
+        }
     }
 };
 
 window.processCourse = async () => {
+    if (!summarizer) return alert("L'IA charge encore... attend un instant.");
+    
     const summaryDiv = document.getElementById('summary-result');
     const quizDiv = document.getElementById('quiz-result');
     summaryDiv.classList.remove('hidden');
     quizDiv.classList.remove('hidden');
-    summaryDiv.innerHTML = "<h3>📝 Résumé</h3><p>⏳ L'IA analyse le contenu...</p>";
     
-    // On prend les 2000 premiers caractères pour l'IA locale
-    const textToAnalyze = extractedText.substring(0, 2000); 
+    summaryDiv.innerHTML = "<h3>📝 Résumé</h3><p>⏳ IA en cours de réflexion (cela peut prendre 10-30 sec)...</p>";
+    
+    // On limite le texte pour ne pas faire planter le navigateur
+    const textToAnalyze = extractedText.substring(0, 1500); 
 
     try {
-        const output = await summarizer(textToAnalyze, { max_new_tokens: 150 });
+        const output = await summarizer(textToAnalyze, { 
+            max_new_tokens: 100,
+            chunk_length: 512,
+            iteration: 1
+        });
+        
         summaryDiv.innerHTML = `<h3>📝 Résumé du cours</h3><p>${output[0].summary_text}</p>`;
         
-        // Création d'un quiz basé sur les mots du document
-        const words = textToAnalyze.split(' ').filter(w => w.length > 7);
-        quizDiv.innerHTML = `<h3>❓ Quiz</h3>
-            <span class="quiz-q">1. Comment définiriez-vous "${words[0] || 'ce concept'}" selon le texte ?</span>
-            <span class="quiz-q">2. Expliquez le rôle de "${words[1] || 'cet élément'}" dans ce cours.</span>`;
-    } catch (e) { summaryDiv.innerHTML = "<p>Erreur analyse IA.</p>"; }
+        // Quiz basé sur les mots importants
+        const keywords = textToAnalyze.split(' ').filter(w => w.length > 7);
+        quizDiv.innerHTML = `<h3>❓ Quiz Automatique</h3>
+            <span class="quiz-q">1. Selon le texte, quel est l'impact de "${keywords[0] || 'ce sujet'}" ?</span>
+            <span class="quiz-q">2. Donnez une explication sur "${keywords[1] || 'cet élément'}" d'après le PDF.</span>`;
+            
+    } catch (e) {
+        console.error(e);
+        summaryDiv.innerHTML = "<h3>❌ Erreur</h3><p>L'IA a eu un problème. Réessaie avec un texte plus court ou vérifie ta connexion au premier chargement.</p>";
+    }
 };
 
+// Fonctions Dashboard / Auth (Inchangées)
 window.finishRegister = () => {
     const name = document.getElementById('user-name').value;
     if (name.trim()) { localStorage.setItem('ai_studiant_user', name); checkAuth(); }
 };
-
 function checkAuth() {
     const name = localStorage.getItem('ai_studiant_user');
     if (name) {
@@ -86,7 +121,6 @@ function checkAuth() {
         loadSubjects();
     }
 }
-
 function loadSubjects() {
     const grid = document.getElementById('subjects-grid');
     let saved = JSON.parse(localStorage.getItem('ai_subjects')) || DEFAULT_SUBJECTS;
@@ -99,26 +133,22 @@ function loadSubjects() {
         grid.appendChild(card);
     });
 }
-
 window.renameSubject = (index, event) => {
     event.stopPropagation();
     let saved = JSON.parse(localStorage.getItem('ai_subjects')) || DEFAULT_SUBJECTS;
     const newName = prompt("Nom :", saved[index]);
     if (newName) { saved[index] = newName; localStorage.setItem('ai_subjects', JSON.stringify(saved)); loadSubjects(); }
 };
-
 window.addNewSubject = () => {
     let saved = JSON.parse(localStorage.getItem('ai_subjects')) || DEFAULT_SUBJECTS;
     const name = prompt("Matière :");
     if (name) { saved.push(name); localStorage.setItem('ai_subjects', JSON.stringify(saved)); loadSubjects(); }
 };
-
 window.openSubject = (name) => {
     document.getElementById('dashboard-page').classList.add('hidden');
     document.getElementById('subject-page').classList.remove('hidden');
     document.getElementById('current-subject-title').innerText = name;
 };
-
 window.showDashboard = () => {
     document.getElementById('dashboard-page').classList.remove('hidden');
     document.getElementById('subject-page').classList.add('hidden');
