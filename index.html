@@ -45,17 +45,21 @@
                     
                     <div id="upload-status-container" class="hidden">
                         <div class="status-info">
-                            <span id="file-info">Fichier</span>
-                            <span id="progress-text">0%</span>
+                            <span id="file-info">Taille : 0 Mo</span>
+                            <span id="progress-text">Upload : 0%</span>
                         </div>
                         <div class="progress-bar"><div id="progress-fill"></div></div>
                     </div>
 
-                    <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">En attente du fichier...</button>
-                    <p id="eta-text" class="hidden"></p>
+                    <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">Attente du fichier...</button>
+                    
+                    <div id="ia-detail-container" class="hidden">
+                        <p id="eta-text"></p>
+                        <p id="ia-stats">Analyse : 0% | Reste : 100%</p>
+                    </div>
 
                     <button id="btn-result" onclick="showResults()" class="hidden btn-green">
-                        ✅ Voir Résumé & Quiz (<span id="result-progress">0%</span>)
+                        ✅ Cliquer pour Résumé & Quiz (<span id="result-progress">0%</span>)
                     </button>
                 </div>
 
