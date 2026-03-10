@@ -1,23 +1,133 @@
-* { box-sizing: border-box; }
-body { background: #121212; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }
-.phone-container { width: 360px; height: 740px; background: #1a1a1a; border-radius: 50px; padding: 12px; border: 4px solid #333; position: relative; }
-.phone-screen { width: 100%; height: 100%; background: #f8faff; border-radius: 38px; overflow-y: auto; scrollbar-width: none; }
-.page { padding: 25px 20px; }
+/* --- BASE & STRUCTURE --- */
+* { 
+    box-sizing: border-box; 
+    -webkit-tap-highlight-color: transparent; 
+}
+
+body { 
+    background: #121212; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    height: 100vh; 
+    margin: 0; 
+    font-family: 'Segoe UI', sans-serif; 
+}
+
+/* --- LE TÉLÉPHONE --- */
+.phone-container { 
+    width: 360px; 
+    height: 740px; 
+    background: #1a1a1a; 
+    border-radius: 50px; 
+    padding: 12px; 
+    border: 4px solid #333; 
+    position: relative; 
+    box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+}
+
+.phone-screen { 
+    width: 100%; 
+    height: 100%; 
+    background: #f8faff; 
+    border-radius: 38px; 
+    overflow-y: auto; 
+    position: relative; 
+    scrollbar-width: none; 
+}
+
+.phone-screen::-webkit-scrollbar { display: none; }
+
+.page { padding: 25px 20px; animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .hidden { display: none !important; }
 
-/* Upload & Progress */
-.status-info { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #2c3e50; }
-.progress-bar { width: 100%; background: #eee; border-radius: 10px; height: 8px; margin-bottom: 15px; overflow: hidden; }
-#progress-fill { height: 100%; width: 0%; background: #3498db; transition: width 0.2s; }
+/* --- EN-TÊTE & DASHBOARD --- */
+header { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.card { 
+    background: #fff; border-radius: 18px; padding: 25px 10px; text-align: center; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05); font-weight: bold; cursor: pointer;
+    transition: transform 0.2s; border: 1px solid #f0f0f0;
+}
+.card:active { transform: scale(0.95); }
 
-/* Boutons */
-button { border: none; padding: 18px; width: 100%; border-radius: 15px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+/* --- SECTION UPLOAD & PROGRESSION --- */
+.upload-section {
+    background: #fff;
+    padding: 15px;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+}
+
+.custom-file-upload { 
+    display: block; background: #6c5ce7; color: white; padding: 18px; 
+    border-radius: 15px; text-align: center; font-weight: bold; cursor: pointer; 
+}
+
+.status-info { 
+    display: flex; justify-content: space-between; font-size: 12px; 
+    font-weight: bold; margin: 15px 0 5px 0; color: #2c3e50; 
+}
+
+.progress-bar { 
+    width: 100%; background: #eee; border-radius: 10px; height: 10px; 
+    overflow: hidden; margin-bottom: 10px;
+}
+
+#progress-fill { 
+    height: 100%; width: 0%; background: #3498db; 
+    transition: width 0.3s ease; 
+}
+
+/* --- BOUTONS DYNAMIQUES --- */
+button { 
+    border: none; padding: 18px; width: 100%; border-radius: 15px; 
+    font-weight: bold; cursor: pointer; transition: all 0.3s; margin-top: 10px; 
+}
+
 .btn-blue { background: #3498db; color: white; }
-.btn-green { background: #2ecc71; color: white; border-bottom: 4px solid #27ae60; }
-button:disabled { background: #bdc3c7; cursor: not-allowed; }
+.btn-green { 
+    background: #2ecc71; color: white; 
+    box-shadow: 0 4px 0 #27ae60; 
+}
+.btn-green:active { transform: translateY(3px); box-shadow: none; }
 
-#eta-text { font-size: 11px; text-align: center; color: #e67e22; font-weight: bold; margin-top: 5px; }
+button:disabled { background: #bdc3c7; cursor: not-allowed; opacity: 0.7; }
 
-/* Résultats */
-.result-box { background: white; padding: 20px; border-radius: 18px; margin-top: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-.quiz-q { display: block; background: #f1f2f6; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 13px; border-left: 3px solid #6c5ce7; }
+/* Animation IA en cours (Orange) */
+.analyzing { background: #e67e22 !important; color: white; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+
+#eta-text { 
+    font-size: 12px; text-align: center; color: #d35400; 
+    font-weight: bold; margin-top: 8px; 
+}
+
+/* --- RÉSULTATS (RÉSUMÉ & QUIZ) --- */
+#results-container { margin-top: 20px; }
+
+.result-box { 
+    background: white; padding: 20px; border-radius: 18px; 
+    margin-bottom: 20px; border-left: 6px solid #00b894;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.result-box h3 { margin-top: 0; color: #2c3e50; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+.result-box p { line-height: 1.6; color: #444; font-size: 14px; }
+
+/* Style spécifique pour les 30 questions de quiz */
+.quiz-q { 
+    display: block; background: #f9f9ff; padding: 12px; 
+    border-radius: 10px; margin-top: 10px; font-size: 13px; 
+    border: 1px solid #e0e0f0; color: #2c3e50;
+    line-height: 1.4;
+}
+
+/* --- NAVIGATION --- */
+.back-btn { 
+    width: 40px; height: 40px; border-radius: 50%; background: #fff; 
+    border: 1px solid #eee; cursor: pointer; margin-bottom: 10px;
+}
+
+.add-btn-main { background: #2c3e50; color: white; margin-top: 20px; }
