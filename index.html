@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Studiant - Analyse Dynamique</title>
+    <title>AI Studiant - Expert Mode</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -16,18 +16,16 @@
                 <div class="auth-box">
                     <div class="app-logo">🎓</div>
                     <h1>AI Studiant</h1>
-                    <p>Prêt pour tes révisions ?</p>
+                    <p>Votre coach IA personnel</p>
                     <input type="text" id="user-name" placeholder="Ton nom complet...">
-                    <button onclick="finishRegister()">S'inscrire 🚀</button>
+                    <button onclick="finishRegister()">Commencer 🚀</button>
                 </div>
             </div>
 
             <div id="dashboard-page" class="page hidden">
                 <header>
-                    <div class="user-info">
-                        <h3>Salut, <span id="display-name"></span> 👋</h3>
-                        <p id="status-ia">Initialisation de l'IA...</p>
-                    </div>
+                    <h3>Salut, <span id="display-name"></span> 👋</h3>
+                    <p id="status-ia">IA en attente...</p>
                 </header>
                 <div class="grid" id="subjects-grid"></div>
                 <button class="add-btn-main" onclick="addNewSubject()">+ Ajouter une matière</button>
@@ -46,19 +44,24 @@
                     <input id="file-upload" type="file" accept=".pdf" onchange="handleFileUpload(event)"/>
                     
                     <div id="upload-status-container" class="hidden">
-                        <p id="file-info"></p>
-                        <div class="progress-bar">
-                            <div id="progress-fill"></div>
+                        <div class="status-info">
+                            <span id="file-info">Fichier</span>
+                            <span id="progress-text">0%</span>
                         </div>
-                        <p id="progress-text">Prêt</p>
+                        <div class="progress-bar"><div id="progress-fill"></div></div>
                     </div>
 
-                    <button id="btn-ai" onclick="processCourse()" disabled>En attente du PDF...</button>
+                    <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">En attente du fichier...</button>
+                    <p id="eta-text" class="hidden"></p>
+
+                    <button id="btn-result" onclick="showResults()" class="hidden btn-green">
+                        ✅ Voir Résumé & Quiz (<span id="result-progress">0%</span>)
+                    </button>
                 </div>
 
-                <div id="results">
-                    <div id="summary-result" class="result-box hidden"></div>
-                    <div id="quiz-result" class="result-box hidden"></div>
+                <div id="results-container" class="hidden">
+                    <div id="summary-result" class="result-box"></div>
+                    <div id="quiz-result" class="result-box"></div>
                 </div>
             </div>
 
