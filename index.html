@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Studiant - IA Locale</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>🎓 AI Studiant</h1>
+            <div id="status">Chargement de l'IA...</div>
+        </header>
+
+        <main id="main-content">
+            <section id="dashboard">
+                <h2>Mes Matières</h2>
+                <div class="grid" id="subjects-grid"></div>
+            </section>
+
+            <section id="subject-page" class="hidden">
+                <button onclick="showDashboard()">⬅ Retour</button>
+                <h2 id="current-subject-title">Matière</h2>
+                
+                <div class="upload-box">
+                    <textarea id="course-text" placeholder="Collez votre cours ici..."></textarea>
+                    <button id="btn-ai" disabled onclick="processCourse()">🚀 Résumer & Créer Quiz</button>
+                </div>
+
+                <div id="results">
+                    <div id="summary-result"></div>
+                    <div id="quiz-result"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
