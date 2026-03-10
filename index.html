@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Studiant - Mobile</title>
+    <title>AI Studiant - Analyse Réelle</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
     <div class="phone-container">
@@ -15,7 +16,7 @@
                 <div class="auth-box">
                     <div class="app-logo">🎓</div>
                     <h1>AI Studiant</h1>
-                    <p>Entre ton nom pour commencer</p>
+                    <p>Analyse de cours par IA locale</p>
                     <input type="text" id="user-name" placeholder="Ton nom complet...">
                     <button onclick="finishRegister()">S'inscrire 🚀</button>
                 </div>
@@ -40,9 +41,9 @@
                 
                 <div class="upload-section">
                     <label for="file-upload" class="custom-file-upload">
-                        <i class="fas fa-file-upload"></i> Sélectionner un cours (PDF, Image...)
+                        <i class="fas fa-file-pdf"></i> Sélectionner le PDF du cours
                     </label>
-                    <input id="file-upload" type="file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="handleFileUpload(event)"/>
+                    <input id="file-upload" type="file" accept=".pdf" onchange="handleFileUpload(event)"/>
                     
                     <div id="upload-status-container" class="hidden">
                         <p id="file-info"></p>
@@ -52,12 +53,12 @@
                         <p id="progress-text">0%</p>
                     </div>
 
-                    <button id="btn-ai" onclick="processCourse()" disabled>🚀 Générer Résumé & Quiz</button>
+                    <button id="btn-ai" onclick="processCourse()" disabled>🚀 Analyser le contenu réel</button>
                 </div>
 
                 <div id="results">
-                    <div id="summary-result" class="result-box"></div>
-                    <div id="quiz-result" class="result-box"></div>
+                    <div id="summary-result" class="result-box hidden"></div>
+                    <div id="quiz-result" class="result-box hidden"></div>
                 </div>
             </div>
 
