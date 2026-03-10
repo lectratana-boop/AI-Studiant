@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Studiant - App Mobile</title>
+    <title>AI Studiant - Mobile</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -40,7 +40,7 @@
                 
                 <div class="upload-section">
                     <label for="file-upload" class="custom-file-upload">
-                        <i class="fas fa-file-upload"></i> Uploader PDF, Image, Word
+                        <i class="fas fa-file-upload"></i> Sélectionner un cours (PDF, Image...)
                     </label>
                     <input id="file-upload" type="file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="handleFileUpload(event)"/>
                     
@@ -52,21 +52,17 @@
                         <p id="progress-text">0%</p>
                     </div>
 
-                    <div class="divider"><span>OU</span></div>
-                    
-                    <textarea id="course-text" placeholder="Colle ton cours ici..."></textarea>
-                    <button id="btn-ai" onclick="processCourse()" disabled>🚀 Résumer & Créer Quiz</button>
+                    <button id="btn-ai" onclick="processCourse()" disabled>🚀 Générer Résumé & Quiz</button>
                 </div>
 
                 <div id="results">
-                    <div id="summary-result"></div>
-                    <div id="quiz-result"></div>
+                    <div id="summary-result" class="result-box"></div>
+                    <div id="quiz-result" class="result-box"></div>
                 </div>
             </div>
 
         </div>
     </div>
-
     <script type="module" src="script.js"></script>
 </body>
 </html>
