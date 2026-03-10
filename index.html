@@ -1,9 +1,72 @@
-<input id="file-upload" type="file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="handleFileUpload(event)"/>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Studiant - App Mobile</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="phone-container">
+        <div class="phone-screen">
+            
+            <div id="register-page" class="page">
+                <div class="auth-box">
+                    <div class="app-logo">🎓</div>
+                    <h1>AI Studiant</h1>
+                    <p>Entre ton nom pour commencer</p>
+                    <input type="text" id="user-name" placeholder="Ton nom complet...">
+                    <button onclick="finishRegister()">S'inscrire 🚀</button>
+                </div>
+            </div>
 
-<div id="upload-status-container" class="hidden">
-    <p id="file-info"></p>
-    <div class="progress-bar">
-        <div id="progress-fill"></div>
+            <div id="dashboard-page" class="page hidden">
+                <header>
+                    <div class="user-info">
+                        <h3>Salut, <span id="display-name"></span> 👋</h3>
+                        <p id="status-ia">Initialisation de l'IA...</p>
+                    </div>
+                </header>
+                <div class="grid" id="subjects-grid"></div>
+                <button class="add-btn-main" onclick="addNewSubject()">+ Ajouter une matière</button>
+            </div>
+
+            <div id="subject-page" class="page hidden">
+                <div class="nav-header">
+                    <button class="back-btn" onclick="showDashboard()">⬅</button>
+                    <h2 id="current-subject-title">Matière</h2>
+                </div>
+                
+                <div class="upload-section">
+                    <label for="file-upload" class="custom-file-upload">
+                        <i class="fas fa-file-upload"></i> Uploader PDF, Image, Word
+                    </label>
+                    <input id="file-upload" type="file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="handleFileUpload(event)"/>
+                    
+                    <div id="upload-status-container" class="hidden">
+                        <p id="file-info"></p>
+                        <div class="progress-bar">
+                            <div id="progress-fill"></div>
+                        </div>
+                        <p id="progress-text">0%</p>
+                    </div>
+
+                    <div class="divider"><span>OU</span></div>
+                    
+                    <textarea id="course-text" placeholder="Colle ton cours ici..."></textarea>
+                    <button id="btn-ai" onclick="processCourse()" disabled>🚀 Résumer & Créer Quiz</button>
+                </div>
+
+                <div id="results">
+                    <div id="summary-result"></div>
+                    <div id="quiz-result"></div>
+                </div>
+            </div>
+
+        </div>
     </div>
-    <p id="progress-text">0%</p>
-</div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
