@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Studiant - Expert Mode</title>
+    <title>AI Studiant v3 - Expert</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -16,19 +16,17 @@
                 <div class="auth-box">
                     <div class="app-logo">🎓</div>
                     <h1>AI Studiant</h1>
-                    <p>Votre coach IA personnel</p>
                     <input type="text" id="user-name" placeholder="Ton nom complet...">
-                    <button onclick="finishRegister()">Commencer 🚀</button>
+                    <button onclick="finishRegister()">Se connecter 🚀</button>
                 </div>
             </div>
 
             <div id="dashboard-page" class="page hidden">
                 <header>
                     <h3>Salut, <span id="display-name"></span> 👋</h3>
-                    <p id="status-ia">IA en attente...</p>
+                    <p id="status-ia">Chargement du moteur IA...</p>
                 </header>
                 <div class="grid" id="subjects-grid"></div>
-                <button class="add-btn-main" onclick="addNewSubject()">+ Ajouter une matière</button>
             </div>
 
             <div id="subject-page" class="page hidden">
@@ -55,11 +53,11 @@
                     
                     <div id="ia-detail-container" class="hidden">
                         <p id="eta-text"></p>
-                        <p id="ia-stats">Analyse : 0% | Reste : 100%</p>
+                        <p id="ia-stats">Initialisation de l'analyse...</p>
                     </div>
 
                     <button id="btn-result" onclick="showResults()" class="hidden btn-green">
-                        ✅ Cliquer pour Résumé & Quiz (<span id="result-progress">0%</span>)
+                        ✅ Voir Résumé & Quiz (<span id="result-progress">0%</span>)
                     </button>
                 </div>
 
@@ -68,7 +66,6 @@
                     <div id="quiz-result" class="result-box"></div>
                 </div>
             </div>
-
         </div>
     </div>
     <script type="module" src="script.js"></script>
