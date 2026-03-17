@@ -2,12 +2,8 @@
     --bg: #020617;
     --card: #1e293b;
     --primary: #6366f1;
-    --blue: #3b82f6;
-    --orange: #f59e0b;
     --green: #10b981;
 }
-
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
 
 body { 
     background: var(--bg); 
@@ -15,64 +11,54 @@ body {
     justify-content: center; 
     align-items: flex-start; 
     min-height: 100vh; 
-    padding: 30px 0; 
-    color: white; 
+    padding: 20px 0;
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
 }
 
-/* Taille corrigée pour éviter l'écrasement */
 .phone-container { 
-    width: 375px; 
-    height: 780px; 
+    width: 380px; 
+    height: 800px; 
     background: #000; 
     border-radius: 50px; 
     padding: 12px; 
-    border: 5px solid #334155; 
-    box-shadow: 0 50px 100px rgba(0,0,0,0.8);
+    border: 5px solid #334155;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.8);
 }
 
 .phone-screen { 
     width: 100%; 
     height: 100%; 
     background: #0f172a; 
-    border-radius: 38px; 
+    border-radius: 40px; 
     overflow-y: auto; 
-    padding: 25px 20px; 
-    scrollbar-width: none; 
+    padding: 25px 20px;
+    scrollbar-width: none;
 }
 
-.status-badge { background: #1e293b; padding: 6px 12px; border-radius: 20px; font-size: 11px; color: var(--green); margin-bottom: 20px; display: inline-block; }
+.status-badge { background: #1e293b; padding: 5px 12px; border-radius: 20px; font-size: 11px; color: var(--green); margin-bottom: 20px; display: inline-block; }
 
-.upload-section { background: var(--card); padding: 20px; border-radius: 25px; border: 1px solid #334155; margin-bottom: 20px; }
+.upload-section { background: var(--card); padding: 20px; border-radius: 25px; border: 1px solid #334155; }
 
 .custom-file-upload { display: block; background: var(--primary); color: white; padding: 16px; border-radius: 12px; text-align: center; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
 #file-upload { display: none; }
 
-/* Progress Bars */
 .progress-bar { width: 100%; background: #020617; height: 10px; border-radius: 10px; overflow: hidden; margin: 10px 0; }
-.fill-blue { height: 100%; width: 0%; background: var(--blue); transition: 0.3s; }
-.fill-orange { height: 100%; width: 0%; background: var(--orange); transition: 0.3s; }
 
-.text-blue { color: var(--blue); }
-.text-orange { color: var(--orange); }
-.status-info { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; }
-.eta-small { font-size: 11px; text-align: center; color: #94a3b8; }
-.ia-stats-row { display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; margin-top: 5px; }
-
-/* Buttons */
-button { border: none; padding: 16px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-.btn-action { background: var(--blue); color: white; }
-.btn-action:disabled { background: #475569; cursor: not-allowed; }
+button { border: none; padding: 16px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+.btn-blue { background: #3b82f6; color: white; }
+.btn-blue:disabled { background: #475569; opacity: 0.6; }
 .btn-green { background: var(--green); color: white; margin-top: 20px; }
 
-/* Résumé & Quiz Style */
+/* Styles du Résumé et Quiz */
 .summary-chapter { background: #1e293b; border-radius: 20px; padding: 20px; margin-bottom: 20px; border-left: 5px solid var(--primary); }
-.summary-chapter h3 { color: #818cf8; margin-bottom: 10px; font-size: 16px; }
-.summary-chapter ul { margin-left: 18px; color: #cbd5e1; font-size: 14px; margin-top: 10px; }
+.summary-chapter h3 { color: #818cf8; margin-bottom: 10px; }
+.summary-chapter ul { margin-left: 20px; color: #cbd5e1; font-size: 14px; margin-top: 10px; }
 .summary-chapter li { margin-bottom: 8px; }
 
-.quiz-card { background: #0f172a; border: 1px solid #334155; border-radius: 15px; padding: 15px; margin-bottom: 15px; }
-.option { display: block; background: #1e293b; padding: 12px; border-radius: 10px; margin: 8px 0; font-size: 13px; border: 1px solid transparent; }
-.option.correct { border-color: var(--green); background: rgba(16, 185, 129, 0.1); color: #4ade80; font-weight: bold; }
+.quiz-card { background: #0f172a; border: 1px solid #475569; border-radius: 15px; padding: 15px; margin-bottom: 15px; }
+.option { display: block; background: #1e293b; padding: 12px; border-radius: 10px; margin: 8px 0; font-size: 13px; }
+.option.correct { border: 1px solid var(--green); color: #4ade80; background: rgba(16, 185, 129, 0.1); }
 .option.correct::after { content: " (Vrai ✅)"; float: right; }
 
 .hidden { display: none !important; }
