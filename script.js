@@ -1,4 +1,7 @@
-// Fonction principale pour traiter le cours avec une IA puissante (ex: Gemini)
+// Remplacez VOTRE_CLE_API par votre clé obtenue sur Google AI Studio
+const GEMINI_API_KEY = "VOTRE_CLE_API";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+
 window.processCourse = async () => {
     const btnAi = document.getElementById('btn-ai');
     const container = document.getElementById('ia-detail-container');
@@ -6,73 +9,94 @@ window.processCourse = async () => {
     container.classList.remove('hidden');
     btnAi.classList.add('hidden');
 
-    // On prépare les données à envoyer à l'IA "cachée"
-    const requestData = {
-        text: extractedText,
-        subject: document.getElementById('current-subject-title').innerText,
-        format: "structured_summary_and_quiz"
-    };
+    // Le Prompt "Caché" qui définit la qualité du résumé et du quiz
+    const promptInstructions = `
+        Analyse ce cours : "${extractedText.substring(0, 10000)}"
+        Tu dois générer un résumé structuré et un quiz de 10 à 30 questions.
+        Réponds UNIQUEMENT au format JSON suivant :
+        {
+          "titre": "Titre du chapitre",
+          "introduction": "Résumé global court",
+          "points_cles": ["Point 1", "Point 2", "Point 3"],
+          "quiz": [
+            {
+              "question": "Texte de la question",
+              "correct": "La bonne réponse",
+              "wrong": ["Mauvaise réponse 1", "Mauvaise réponse 2"]
+            }
+          ]
+        }
+        Important : Pour le résumé, utilise un style clair avec des listes à puces.
+    `;
 
     try {
-        // Simulation de la progression pendant que l'IA réfléchit
+        // Animation de progression simulée
         let progress = 0;
-        const progInterval = setInterval(() => {
-            if(progress < 95) {
-                progress += 1;
-                updateIAProgress(progress);
+        const interval = setInterval(() => {
+            if(progress < 90) {
+                progress += 2;
+                updateUIPercentage(progress);
             }
-        }, 200);
+        }, 100);
 
-        // APPEL À VOTRE API (Gemini / GPT)
-        // Remplacez 'VOTRE_URL_BACKEND' par votre lien de serveur
-        const response = await fetch('VOTRE_URL_BACKEND/analyze', {
+        // APPEL À L'IA (GEMINI)
+        const response = await fetch(GEMINI_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: promptInstructions }] }]
+            })
         });
 
-        const result = await response.json();
-        clearInterval(progInterval);
-        updateIAProgress(100);
+        const data = await response.json();
+        const aiResponseText = data.candidates[0].content.parts[0].text;
+        
+        // Nettoyage du JSON (au cas où l'IA ajoute des balises ```json)
+        const cleanJson = aiResponseText.replace(/```json/g, "").replace(/```/g, "").trim();
+        const finalData = JSON.parse(cleanJson);
 
-        // Affichage des résultats reçus de l'IA puissante
-        displayAIFinalResults(result);
+        clearInterval(interval);
+        updateUIPercentage(100);
+        
+        displayFinalResults(finalData);
 
     } catch (error) {
-        console.error("Erreur API:", error);
-        alert("L'IA n'a pas pu répondre. Vérifiez votre connexion serveur.");
+        console.error("Erreur IA:", error);
+        alert("Erreur de connexion avec l'IA. Vérifiez votre clé API.");
     }
 };
 
-function updateIAProgress(p) {
+function updateUIPercentage(p) {
     document.getElementById('ia-fill').style.width = p + "%";
     document.getElementById('ia-perc').innerText = p + "%";
-    document.getElementById('ia-done').innerText = `Analyse intelligente : ${p}%`;
 }
 
-function displayAIFinalResults(data) {
-    // L'IA renvoie maintenant un objet propre
-    document.getElementById('summary-result').innerHTML = `
+function displayFinalResults(data) {
+    // Affichage du Résumé type "Structure des dents"
+    let summaryHtml = `
         <div class="summary-chapter">
-            <h3>Titre : ${data.title}</h3>
-            <p>${data.summary_intro}</p>
+            <h3>Titre : ${data.titre}</h3>
+            <p>${data.introduction}</p>
+            <p><strong>Détails du cours :</strong></p>
             <ul>
-                ${data.key_points.map(point => `<li>${point}</li>`).join('')}
+                ${data.points_cles.map(pt => `<li>${pt}</li>`).join('')}
             </ul>
         </div>
     `;
+    document.getElementById('summary-result').innerHTML = summaryHtml;
 
-    let quizHtml = "<h2>❓ Quiz de Validation</h2>";
-    data.quiz.forEach((q, idx) => {
+    // Affichage du Quiz Corrigé
+    let quizHtml = "<h2>❓ Quiz Corrigé</h2>";
+    data.quiz.forEach((q, i) => {
         quizHtml += `
             <div class="quiz-card">
-                <span class="quiz-question">${idx+1}. ${q.question}</span>
-                <div class="option correct">${q.correct_answer}</div>
-                ${q.wrong_answers.map(w => `<div class="option">${w}</div>`).join('')}
+                <span class="quiz-question">${i+1}. ${q.question}</span>
+                <div class="option correct">${q.correct}</div>
+                <div class="option">${q.wrong[0]}</div>
+                <div class="option">${q.wrong[1]}</div>
             </div>
         `;
     });
-    
-    document.getElementById('quiz-result').innerHTML = qHtml;
+    document.getElementById('quiz-result').innerHTML = quizHtml;
     document.getElementById('btn-result').classList.remove('hidden');
 }
