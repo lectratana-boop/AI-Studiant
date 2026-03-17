@@ -1,56 +1,32 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Studiant v3 - Debug Mode</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-</head>
-<body>
-    <div class="phone-container">
-        <div class="phone-screen">
-            <div id="dashboard-page" class="page">
-                <header>
-                    <h2>Expert Analyse 💻</h2>
-                    <div id="status-ia" class="status-badge">Moteur IA en cours de chargement...</div>
-                </header>
-
-                <div class="upload-section">
-                    <label for="file-upload" class="custom-file-upload">
-                        <i class="fas fa-file-medical"></i> Charger PDF ou Word
-                    </label>
-                    <input id="file-upload" type="file" accept=".pdf,.docx" onchange="handleFileUpload(event)"/>
-                    
-                    <div id="upload-status-container" class="hidden">
-                        <div class="status-info">
-                            <span id="file-info">Prêt</span>
-                            <span id="progress-text">0%</span>
-                        </div>
-                        <div class="progress-bar"><div id="progress-fill"></div></div>
-                    </div>
-
-                    <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">Lancer l'Analyse Profonde</button>
-                    
-                    <div id="ia-detail-container" class="hidden">
-                        <p id="eta-text"></p>
-                        <div class="ia-stats-row">
-                            <span id="ia-perc-done">Progression : 0%</span>
-                        </div>
-                    </div>
-
-                    <button id="btn-result" onclick="showResults()" class="hidden btn-green">✅ Voir Résultats Corrigés</button>
-                </div>
-
-                <div id="results-container" class="hidden">
-                    <div id="summary-result" class="result-box"></div>
-                    <div id="quiz-result" class="result-box"></div>
-                </div>
-            </div>
+<div class="upload-section">
+    <label for="file-upload" class="custom-file-upload">
+        <i class="fas fa-file-upload"></i> Charger PDF ou Word
+    </label>
+    <input id="file-upload" type="file" accept=".pdf,.docx" onchange="handleFileUpload(event)"/>
+    
+    <div id="upload-status-container" class="hidden">
+        <div class="status-info">
+            <span id="file-info">Calcul...</span>
+            <span id="upload-perc" style="color: #3b82f6;">0%</span>
         </div>
+        <div class="progress-bar"><div id="upload-fill" class="fill-blue"></div></div>
+        <p id="upload-eta" class="eta-small">Temps estimé : --s</p>
     </div>
-    <script type="module" src="script.js"></script>
-</body>
-</html>
+
+    <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">Lancer l'Analyse</button>
+    
+    <div id="ia-detail-container" class="hidden">
+        <div class="status-info">
+            <span id="ia-status-text">Analyse IA en cours...</span>
+            <span id="ia-perc" style="color: #f59e0b;">0%</span>
+        </div>
+        <div class="progress-bar"><div id="ia-fill" class="fill-orange"></div></div>
+        <div class="ia-stats-row">
+            <span id="ia-done">Vérifié : 0%</span>
+            <span id="ia-rem">Reste : 100%</span>
+        </div>
+        <p id="ia-eta" class="eta-small">Fin prévue dans : -- min</p>
+    </div>
+
+    <button id="btn-result" onclick="showResults()" class="hidden btn-green">✅ Voir Résumé & Quiz Corrigé</button>
+</div>
