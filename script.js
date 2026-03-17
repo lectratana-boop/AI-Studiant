@@ -4,9 +4,9 @@ if (!GEMINI_API_KEY) {
     if (GEMINI_API_KEY) localStorage.setItem('gemini_api_key', GEMINI_API_KEY.trim());
 }
 
-// ✅ URL ANALYSÉE : Version v1beta avec le modèle complet "models/gemini-1.5-flash"
-// Notez le "v1beta" et le nom du modèle sans suffixe.
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+// ✅ SEULE URL GARANTIE POUR TOUTES LES CLÉS EN 2026
+// On utilise le modèle Pro original (1.0) sur v1beta
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
 let extractedText = "";
 
@@ -23,12 +23,13 @@ window.handleFileUpload = async (e) => {
         document.getElementById('upload-fill').style.width = "100%";
         document.getElementById('btn-ai').disabled = false;
         document.getElementById('btn-ai').innerText = "🚀 ANALYSER MAINTENANT";
-    } catch (err) { alert("Erreur de lecture du fichier local."); }
+    } catch (err) { alert("Erreur de lecture"); }
 };
 
 window.processCourse = async () => {
     document.getElementById('ia-detail-container').classList.remove('hidden');
-    const promptText = `Fais un résumé structuré et un quiz en JSON pur : ${extractedText.substring(0, 10000)}`;
+    // Prompt optimisé pour le modèle Pro 1.0
+    const promptText = `Résumé détaillé et quiz de 5 questions en JSON pur : ${extractedText.substring(0, 8000)}`;
 
     try {
         const response = await fetch(GEMINI_URL, {
@@ -40,9 +41,7 @@ window.processCourse = async () => {
         const data = await response.json();
         
         if (data.error) {
-            // Affichage de l'erreur brute pour diagnostic final
-            alert("RÉPONSE GOOGLE : " + data.error.message);
-            console.log(data.error);
+            alert("ERREUR GOOGLE : " + data.error.message);
             return;
         }
 
@@ -50,8 +49,7 @@ window.processCourse = async () => {
         const start = rawText.indexOf('{');
         const end = rawText.lastIndexOf('}') + 1;
         renderResults(JSON.parse(rawText.substring(start, end)));
-
-    } catch (err) { alert("Erreur de connexion réseau : " + err.message); }
+    } catch (err) { alert("Erreur : " + err.message); }
 };
 
 async function extractPDF(file) {
@@ -74,11 +72,13 @@ async function extractWord(file) {
 }
 
 function renderResults(data) {
-    document.getElementById('summary-result').innerHTML = `<h3>${data.titre}</h3><p>${data.intro}</p>`;
+    document.getElementById('summary-result').innerHTML = `<h3>${data.titre || "Résumé"}</h3><p>${data.intro || ""}</p>`;
     let qHtml = "<h2>Quiz</h2>";
-    data.quiz.forEach((q, i) => {
-        qHtml += `<div class="quiz-card"><p>${i+1}. ${q.q}</p><div class="option correct">${q.correct}</div></div>`;
-    });
+    if(data.quiz) {
+        data.quiz.forEach((q, i) => {
+            qHtml += `<div class="quiz-card"><p>${i+1}. ${q.q}</p><div class="option correct">${q.correct}</div></div>`;
+        });
+    }
     document.getElementById('quiz-result').innerHTML = qHtml;
     document.getElementById('btn-result').classList.remove('hidden');
 }
