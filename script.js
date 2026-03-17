@@ -4,8 +4,9 @@ if (!GEMINI_API_KEY) {
     if (GEMINI_API_KEY) localStorage.setItem('gemini_api_key', GEMINI_API_KEY.trim());
 }
 
-// ✅ CETTE URL EST LA SEULE STABLE ACTUELLEMENT
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+// ✅ URL ANALYSÉE : Version v1beta avec le modèle complet "models/gemini-1.5-flash"
+// Notez le "v1beta" et le nom du modèle sans suffixe.
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 let extractedText = "";
 
@@ -22,13 +23,12 @@ window.handleFileUpload = async (e) => {
         document.getElementById('upload-fill').style.width = "100%";
         document.getElementById('btn-ai').disabled = false;
         document.getElementById('btn-ai').innerText = "🚀 ANALYSER MAINTENANT";
-    } catch (err) { alert("Erreur de lecture"); }
+    } catch (err) { alert("Erreur de lecture du fichier local."); }
 };
 
 window.processCourse = async () => {
     document.getElementById('ia-detail-container').classList.remove('hidden');
-    // Prompt ultra-court pour tester la connexion
-    const promptText = `Fais un résumé court et un quiz de 3 questions en JSON : ${extractedText.substring(0, 5000)}`;
+    const promptText = `Fais un résumé structuré et un quiz en JSON pur : ${extractedText.substring(0, 10000)}`;
 
     try {
         const response = await fetch(GEMINI_URL, {
@@ -40,9 +40,9 @@ window.processCourse = async () => {
         const data = await response.json();
         
         if (data.error) {
-            // Affiche l'erreur exacte pour le diagnostic final
-            alert("ERREUR GOOGLE : " + data.error.message);
-            console.error(data.error);
+            // Affichage de l'erreur brute pour diagnostic final
+            alert("RÉPONSE GOOGLE : " + data.error.message);
+            console.log(data.error);
             return;
         }
 
@@ -50,7 +50,8 @@ window.processCourse = async () => {
         const start = rawText.indexOf('{');
         const end = rawText.lastIndexOf('}') + 1;
         renderResults(JSON.parse(rawText.substring(start, end)));
-    } catch (err) { alert("Erreur : " + err.message); }
+
+    } catch (err) { alert("Erreur de connexion réseau : " + err.message); }
 };
 
 async function extractPDF(file) {
