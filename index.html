@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Studiant v3 - Expert</title>
+    <title>AI Studiant v3 - Ultimate</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 </head>
 <body>
     <div class="phone-container">
@@ -14,49 +15,53 @@
             
             <div id="register-page" class="page">
                 <div class="auth-box">
-                    <div class="app-logo">🎓</div>
-                    <h1>AI Studiant</h1>
-                    <input type="text" id="user-name" placeholder="Ton nom complet...">
-                    <button onclick="finishRegister()">Se connecter 🚀</button>
+                    <div class="app-logo">✨</div>
+                    <h1>AI Studiant <small>v3</small></h1>
+                    <p>Propulsé par IA Locale</p>
+                    <input type="text" id="user-name" placeholder="Entrez votre nom...">
+                    <button class="btn-main" onclick="finishRegister()">Accéder au Dashboard</button>
                 </div>
             </div>
 
             <div id="dashboard-page" class="page hidden">
                 <header>
-                    <h3>Salut, <span id="display-name"></span> 👋</h3>
-                    <p id="status-ia">Chargement du moteur IA...</p>
+                    <h3>Bonjour, <span id="display-name"></span> 👋</h3>
+                    <div id="status-ia" class="status-badge">Initialisation moteur IA...</div>
                 </header>
                 <div class="grid" id="subjects-grid"></div>
             </div>
 
             <div id="subject-page" class="page hidden">
                 <div class="nav-header">
-                    <button class="back-btn" onclick="showDashboard()">⬅</button>
+                    <button class="back-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button>
                     <h2 id="current-subject-title">Matière</h2>
                 </div>
                 
                 <div class="upload-section">
                     <label for="file-upload" class="custom-file-upload">
-                        <i class="fas fa-file-pdf"></i> Choisir le PDF du cours
+                        <i class="fas fa-cloud-upload-alt"></i> PDF ou Word
                     </label>
-                    <input id="file-upload" type="file" accept=".pdf" onchange="handleFileUpload(event)"/>
+                    <input id="file-upload" type="file" accept=".pdf,.docx" onchange="handleFileUpload(event)"/>
                     
                     <div id="upload-status-container" class="hidden">
                         <div class="status-info">
-                            <span id="file-info">Taille : 0 Mo</span>
-                            <span id="progress-text">Upload : 0%</span>
+                            <span id="file-info">0 Mo</span>
+                            <span id="progress-text">0%</span>
                         </div>
                         <div class="progress-bar"><div id="progress-fill"></div></div>
                     </div>
 
-                    <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">Attente du fichier...</button>
+                    <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">Sélectionnez un fichier</button>
                     
                     <div id="ia-detail-container" class="hidden">
                         <p id="eta-text"></p>
-                        <p id="ia-stats">Initialisation de l'analyse...</p>
+                        <div class="ia-stats-row">
+                            <span id="ia-perc-done">Fini : 0%</span>
+                            <span id="ia-perc-rem">Reste : 100%</span>
+                        </div>
                     </div>
 
-                    <button id="btn-result" onclick="showResults()" class="hidden btn-green">
+                    <button id="btn-result" onclick="showResults()" class="hidden btn-green pulse-green">
                         ✅ Voir Résumé & Quiz (<span id="result-progress">0%</span>)
                     </button>
                 </div>
@@ -66,6 +71,7 @@
                     <div id="quiz-result" class="result-box"></div>
                 </div>
             </div>
+
         </div>
     </div>
     <script type="module" src="script.js"></script>
