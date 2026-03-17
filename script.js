@@ -1,17 +1,20 @@
-// 1. CONFIGURATION DE LA CLÉ ET DE L'URL
+// --- 1. GESTION DE LA CLÉ ---
 let GEMINI_API_KEY = localStorage.getItem('gemini_api_key');
 
 if (!GEMINI_API_KEY) {
     GEMINI_API_KEY = prompt("🔑 Collez votre clé API Gemini (AIzaSy...) :");
-    if (GEMINI_API_KEY) localStorage.setItem('gemini_api_key', GEMINI_API_KEY.trim());
+    if (GEMINI_API_KEY) {
+        localStorage.setItem('gemini_api_key', GEMINI_API_KEY.trim());
+    }
 }
 
-// ✅ UTILISATION DE LA VERSION STABLE v1 (Évite l'erreur 404 de v1beta)
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+// ✅ URL DE SECOURS : Utilisation de gemini-pro sur v1beta
+// C'est le lien le plus robuste pour les comptes gratuits
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
 let extractedText = "";
 
-// 2. GESTION DE L'UPLOAD (Correction du blocage à 0%)
+// --- 2. LECTURE DES FICHIERS ---
 window.handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -22,7 +25,7 @@ window.handleFileUpload = async (e) => {
 
     try {
         fill.style.width = "50%";
-        perc.innerText = "Lecture du fichier...";
+        perc.innerText = "Lecture du document...";
 
         if (file.name.endsWith('.pdf')) {
             extractedText = await extractPDF(file);
@@ -31,26 +34,24 @@ window.handleFileUpload = async (e) => {
         }
 
         fill.style.width = "100%";
-        perc.innerText = "Prêt pour l'IA";
+        perc.innerText = "Prêt !";
         document.getElementById('btn-ai').disabled = false;
-        document.getElementById('btn-ai').innerText = "🚀 ANALYSER LE COURS";
+        document.getElementById('btn-ai').innerText = "🚀 ANALYSER MAINTENANT";
     } catch (err) {
-        console.error("Erreur lecture:", err);
-        alert("Impossible de lire ce fichier.");
+        alert("Erreur de lecture : " + err.message);
     }
 };
 
-// 3. APPEL À L'IA (Correction du format JSON)
+// --- 3. APPEL À L'IA ---
 window.processCourse = async () => {
     if (!extractedText) return;
     
     document.getElementById('ia-detail-container').classList.remove('hidden');
     document.getElementById('btn-ai').classList.add('hidden');
 
-    const promptText = `Tu es un assistant pédagogique. Analyse le texte suivant et génère un résumé détaillé ainsi qu'un quiz de 10 questions. 
-    Réponds EXCLUSIVEMENT au format JSON suivant, sans texte avant ou après :
-    {"titre":"...", "intro":"...", "points":["..."], "quiz":[{"q":"...", "correct":"...", "wrong":["..."]}]}
-    Texte du cours : ${extractedText.substring(0, 15000)}`;
+    const promptText = `Fais un résumé structuré et un quiz de 10 questions en JSON pur.
+    Structure: {"titre":"","intro":"","points":[],"quiz":[{"q":"","correct":"","wrong":[]}]}
+    Texte: ${extractedText.substring(0, 10000)}`;
 
     try {
         const response = await fetch(GEMINI_URL, {
@@ -62,30 +63,28 @@ window.processCourse = async () => {
         const data = await response.json();
         
         if (data.error) {
+            // Affiche l'erreur exacte de Google pour comprendre
             throw new Error(data.error.message);
         }
 
         const rawText = data.candidates[0].content.parts[0].text;
         
-        // Nettoyage de la réponse (enlève les balises ```json)
-        const jsonStart = rawText.indexOf('{');
-        const jsonEnd = rawText.lastIndexOf('}') + 1;
-        const cleanJson = JSON.parse(rawText.substring(jsonStart, jsonEnd));
+        // Nettoyage JSON
+        const start = rawText.indexOf('{');
+        const end = rawText.lastIndexOf('}') + 1;
+        const cleanJson = JSON.parse(rawText.substring(start, end));
 
         renderResults(cleanJson);
         document.getElementById('ia-fill').style.width = "100%";
-        document.getElementById('ia-perc').innerText = "Terminé";
     } catch (err) {
-        console.error("Erreur IA:", err);
-        alert("L'IA a répondu avec une erreur : " + err.message);
+        alert("Erreur IA : " + err.message);
         document.getElementById('btn-ai').classList.remove('hidden');
     }
 };
 
-// 4. FONCTIONS D'EXTRACTION (PDF.js et Mammoth)
+// --- 4. FONCTIONS TECHNIQUES ---
 async function extractPDF(file) {
-    // Configuration obligatoire pour PDF.js
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js)';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const ab = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
     let t = "";
@@ -103,18 +102,11 @@ async function extractWord(file) {
     return r.value;
 }
 
-// 5. AFFICHAGE
 function renderResults(data) {
-    document.getElementById('summary-result').innerHTML = `
-        <div class="summary-chapter">
-            <h3>${data.titre}</h3>
-            <p>${data.intro}</p>
-            <ul>${data.points.map(p => `<li>${p}</li>`).join('')}</ul>
-        </div>`;
-
-    let qHtml = "<h2>❓ Quiz de Révision</h2>";
+    document.getElementById('summary-result').innerHTML = `<h3>${data.titre}</h3><p>${data.intro}</p><ul>${data.points.map(p => `<li>${p}</li>`).join('')}</ul>`;
+    let qHtml = "<h2>Quiz</h2>";
     data.quiz.forEach((q, i) => {
-        qHtml += `<div class="quiz-card"><p><strong>${i+1}. ${q.q}</strong></p><div class="option correct">${q.correct}</div>${q.wrong.map(w => `<div class="option">${w}</div>`).join('')}</div>`;
+        qHtml += `<div class="quiz-card"><p>${i+1}. ${q.q}</p><div class="option correct">${q.correct}</div></div>`;
     });
     document.getElementById('quiz-result').innerHTML = qHtml;
     document.getElementById('btn-result').classList.remove('hidden');
