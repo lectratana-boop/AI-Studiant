@@ -1,40 +1,57 @@
+// --- 1. GESTION DE LA CLÉ API ---
 let GEMINI_API_KEY = localStorage.getItem('gemini_api_key');
 
 if (!GEMINI_API_KEY) {
     GEMINI_API_KEY = prompt("🔑 Collez votre clé API Gemini (AIzaSy...) :");
-    if (GEMINI_API_KEY) localStorage.setItem('gemini_api_key', GEMINI_API_KEY.trim());
+    if (GEMINI_API_KEY) {
+        localStorage.setItem('gemini_api_key', GEMINI_API_KEY.trim());
+    }
 }
 
-// L'URL CORRIGÉE (v1 au lieu de v1beta)
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+// URL ultra-compatible pour Gemini 1.5 Flash
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 let extractedText = "";
 
+// --- 2. LECTURE DES FICHIERS (PDF & WORD) ---
 window.handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    const fill = document.getElementById('upload-fill');
+    const perc = document.getElementById('upload-perc');
     document.getElementById('upload-status-container').classList.remove('hidden');
-    
+
     try {
+        fill.style.width = "40%";
+        perc.innerText = "Lecture...";
+
         if (file.name.endsWith('.pdf')) {
             extractedText = await extractPDF(file);
-        } else {
+        } else if (file.name.endsWith('.docx')) {
             extractedText = await extractWord(file);
         }
-        document.getElementById('upload-fill').style.width = "100%";
+
+        fill.style.width = "100%";
+        perc.innerText = "Fichier prêt !";
         document.getElementById('btn-ai').disabled = false;
         document.getElementById('btn-ai').innerText = "🚀 ANALYSER AVEC GEMINI";
     } catch (err) {
-        alert("Erreur de lecture du fichier.");
+        console.error(err);
+        alert("Erreur lors de la lecture du fichier.");
     }
 };
 
+// --- 3. ANALYSE ET GÉNÉRATION ---
 window.processCourse = async () => {
+    if (!extractedText) return;
+    
     document.getElementById('ia-detail-container').classList.remove('hidden');
     document.getElementById('btn-ai').classList.add('hidden');
 
-    const promptText = `Fais un résumé structuré et un quiz de 10 questions en JSON pur. 
-    Texte: ${extractedText.substring(0, 15000)}`;
+    const promptText = `Analyse ce cours et réponds UNIQUEMENT en JSON. 
+    Structure: {"titre":"...", "intro":"...", "points":["..."], "quiz":[{"q":"...", "correct":"...", "wrong":["..."]}]}
+    Contenu: ${extractedText.substring(0, 15000)}`;
 
     try {
         const response = await fetch(GEMINI_URL, {
@@ -45,23 +62,26 @@ window.processCourse = async () => {
 
         const data = await response.json();
         
-        if (data.error) {
-            throw new Error(data.error.message);
-        }
+        if (data.error) throw new Error(data.error.message);
 
         const rawText = data.candidates[0].content.parts[0].text;
+        
+        // Nettoyage pour ne garder que le JSON
         const start = rawText.indexOf('{');
         const end = rawText.lastIndexOf('}') + 1;
         const cleanJson = JSON.parse(rawText.substring(start, end));
 
         renderResults(cleanJson);
+        document.getElementById('ia-fill').style.width = "100%";
+        document.getElementById('ia-perc').innerText = "Terminé !";
     } catch (err) {
         console.error(err);
-        alert("Erreur Gemini : " + err.message);
+        alert("Erreur : " + err.message);
         document.getElementById('btn-ai').classList.remove('hidden');
     }
 };
 
+// --- 4. FONCTIONS TECHNIQUES ---
 async function extractPDF(file) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const ab = await file.arrayBuffer();
@@ -84,11 +104,21 @@ async function extractWord(file) {
 function renderResults(data) {
     document.getElementById('summary-result').innerHTML = `
         <div class="summary-chapter">
-            <h3>${data.titre || "Résumé"}</h3>
-            <p>${data.intro || ""}</p>
-            <ul>${(data.points || []).map(p => `<li>${p}</li>`).join('')}</ul>
+            <h3>${data.titre}</h3>
+            <p>${data.intro}</p>
+            <ul>${data.points.map(p => `<li>${p}</li>`).join('')}</ul>
         </div>`;
-    // ... (Reste du code quiz identique)
+
+    let qHtml = "<h2>❓ Quiz de Révision</h2>";
+    data.quiz.forEach((q, i) => {
+        qHtml += `
+            <div class="quiz-card">
+                <p><strong>${i+1}. ${q.q}</strong></p>
+                <div class="option correct">${q.correct}</div>
+                ${q.wrong.map(w => `<div class="option">${w}</div>`).join('')}
+            </div>`;
+    });
+    document.getElementById('quiz-result').innerHTML = qHtml;
     document.getElementById('btn-result').classList.remove('hidden');
 }
 
