@@ -1,8 +1,3 @@
-// 1. CONFIGURATION
-let GEMINI_API_KEY = localStorage.getItem('gemini_api_key');
-// URL STABLE POUR 2026
-const GEMINI_URL = () => `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${localStorage.getItem('gemini_api_key')}`;
-
 let dbCourses = JSON.parse(localStorage.getItem('ai_studiant_db')) || [];
 let extractedText = "";
 let currentFileName = "";
@@ -19,12 +14,10 @@ function updateBar(id, percId, value) {
     if (text) text.innerText = value + "%";
 }
 
-// 2. MOTEURS DE LECTURE (CORRIGÉS)
+// LECTURE DES FICHIERS (PDF, WORD, TXT)
 window.handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) { alert("Max 50 Mo"); return; }
-
     currentFileName = file.name;
     document.getElementById('label-text').innerText = "📄 " + file.name.substring(0, 15);
     document.getElementById('upload-status-container').classList.remove('hidden');
@@ -37,12 +30,12 @@ window.handleFileUpload = async (e) => {
         } else if (ext.endsWith('.docx')) {
             extractedText = await extractWord(file);
         } else {
-            extractedText = await file.text(); // Support TXT
+            extractedText = await file.text();
         }
         updateBar('upload-fill', 'upload-perc', 100);
         document.getElementById('btn-ai').disabled = false;
-        document.getElementById('btn-ai').innerText = "🚀 ANALYSER CE COURS";
-    } catch (err) { alert("Erreur de lecture."); }
+        document.getElementById('btn-ai').innerText = "🚀 ANALYSER";
+    } catch (err) { alert("Erreur de lecture"); }
 };
 
 async function extractPDF(file) {
@@ -51,7 +44,7 @@ async function extractPDF(file) {
     const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
     let t = "";
     for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i); // Correction ici
+        const page = await pdf.getPage(i);
         const content = await page.getTextContent();
         t += content.items.map(it => it.str).join(" ") + " ";
     }
@@ -64,22 +57,27 @@ async function extractWord(file) {
     return r.value;
 }
 
-// 3. ANALYSE GEMINI
+// APPEL API GEMINI (CORRIGÉ)
 window.processCourse = async () => {
-    if (!extractedText || !localStorage.getItem('gemini_api_key')) return;
+    const key = localStorage.getItem('gemini_api_key');
+    if (!extractedText || !key) { alert("Clé API manquante !"); return; }
+
     document.getElementById('ia-detail-container').classList.remove('hidden');
     document.getElementById('btn-ai').classList.add('hidden');
     
     let prog = 0;
     const interval = setInterval(() => { if (prog < 95) { prog++; updateBar('ia-fill', 'ia-perc', prog); } }, 200);
 
-    const promptText = `Analyse ce cours. Réponds en JSON : {"titre":"", "sections":[{"n":"", "c":""}], "quiz":[{"q":"", "correct":"", "wrong":[]}]}`;
+    // URL CONSTRUITE DE MANIÈRE SÉCURISÉE
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+
+    const promptText = `Analyse ce cours. Réponds uniquement en JSON : {"titre":"", "sections":[{"n":"", "c":""}], "quiz":[{"q":"", "correct":"", "wrong":[]}]}. Texte : ${extractedText.substring(0, 20000)}`;
 
     try {
-        const res = await fetch(GEMINI_URL(), {
+        const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: promptText + " Texte: " + extractedText.substring(0, 20000) }] }] })
+            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
         const data = await res.json();
         clearInterval(interval);
@@ -96,22 +94,26 @@ window.processCourse = async () => {
         renderHistory();
         renderResults(json);
         document.getElementById('results-container').classList.remove('hidden');
-    } catch (err) { alert("Erreur : " + err.message); }
+    } catch (err) { 
+        clearInterval(interval); 
+        alert("Erreur : " + err.message); 
+        document.getElementById('btn-ai').classList.remove('hidden');
+    }
 };
 
-// 4. HISTORIQUE ET SUPPRESSION
+// HISTORIQUE ET BOUTON SUPPRIMER
 window.renderHistory = () => {
     const sub = document.getElementById('current-subject').value;
     const list = document.getElementById('history-list');
     const filtered = dbCourses.filter(c => c.subject === sub);
-    list.innerHTML = filtered.length ? "" : "<p style='font-size:0.7em;color:#475569;'>Vide.</p>";
+    list.innerHTML = filtered.length ? "" : "<p style='font-size:0.7em;color:#475569;'>Aucun cours.</p>";
     
-    filtered.forEach(course => {
+    filtered.forEach(c => {
         const div = document.createElement('div');
-        div.style = "background:#0f172a; padding:10px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; border-left:3px solid #6366f1;";
+        div.style = "background:#0f172a; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; border-left:3px solid #6366f1;";
         div.innerHTML = `
-            <div onclick="viewCourse(${course.id})" style="flex:1; cursor:pointer; font-size:0.8em; color:white;">📄 ${course.name.substring(0,18)}</div>
-            <i class="fas fa-trash-alt" onclick="deleteCourse(${course.id})" style="color:#ef4444; cursor:pointer; padding:5px;"></i>
+            <span onclick="viewCourse(${c.id})" style="flex:1; cursor:pointer; font-size:0.8em; color:white;">📄 ${c.name.substring(0,15)}</span>
+            <i class="fas fa-trash-alt" onclick="deleteCourse(${c.id})" style="color:#ef4444; cursor:pointer; padding:5px;"></i>
         `;
         list.appendChild(div);
     });
@@ -131,12 +133,12 @@ window.viewCourse = (id) => {
 };
 
 function renderResults(data) {
-    let sHtml = `<h2>${data.titre}</h2>`;
-    data.sections.forEach(s => sHtml += `<b>📍 ${s.n}</b><p>${s.c}</p>`);
-    document.getElementById('summary-result').innerHTML = sHtml;
-    let qHtml = `<h3>Quiz</h3>`;
-    data.quiz.forEach((q, i) => qHtml += `<div style="background:#1e293b; padding:10px; margin-bottom:10px; border-radius:10px;"><p>${i+1}. ${q.q}</p><b style="color:#4ade80;">✅ ${q.correct}</b></div>`);
-    document.getElementById('quiz-result').innerHTML = qHtml;
+    let s = `<h2>${data.titre}</h2>`;
+    data.sections.forEach(sec => s += `<b>📍 ${sec.n}</b><p>${sec.c}</p>`);
+    document.getElementById('summary-result').innerHTML = s;
+    let q = `<h3>Quiz</h3>`;
+    data.quiz.forEach((qz, i) => q += `<div style="background:#1e293b; padding:10px; margin-bottom:10px; border-radius:8px;"><b>${i+1}. ${qz.q}</b><br><span style="color:#4ade80;">✅ ${qz.correct}</span></div>`);
+    document.getElementById('quiz-result').innerHTML = q;
 }
 
 window.switchTab = (t) => {
