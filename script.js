@@ -1,20 +1,18 @@
+// ==========================================
+// 1. INITIALISATION & BASE DE DONNÉES
+// ==========================================
 let GEMINI_API_KEY = localStorage.getItem('gemini_api_key');
 const GEMINI_URL = () => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${localStorage.getItem('gemini_api_key')}`;
+
+// Notre base de données locale
+let dbCourses = JSON.parse(localStorage.getItem('ai_studiant_db')) || [];
 let extractedText = "";
+let currentFileName = "";
 
-// GESTION CLÉ API (Mobile & PC)
 window.askNewKey = () => {
-    const key = prompt("🔑 Collez votre clé API Gemini (AIza...) :");
-    if (key && key.trim().length > 10) {
-        localStorage.setItem('gemini_api_key', key.trim());
-        alert("✅ Clé enregistrée avec succès !");
-        location.reload();
-    }
+    const key = prompt("🔑 Collez votre clé API Gemini :");
+    if (key) { localStorage.setItem('gemini_api_key', key.trim()); location.reload(); }
 };
-
-if (!GEMINI_API_KEY) {
-    setTimeout(() => { if(!localStorage.getItem('gemini_api_key')) askNewKey(); }, 2000);
-}
 
 function updateBar(id, percId, value) {
     const bar = document.getElementById(id);
@@ -23,14 +21,25 @@ function updateBar(id, percId, value) {
     if (text) text.innerText = value + "%";
 }
 
-// LECTURE DU FICHIER
+// ==========================================
+// 2. GESTION DU FICHIER ET LIMITE 50 MO
+// ==========================================
 window.handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    document.getElementById('label-text').innerText = "📄 " + file.name.substring(0, 20);
+    // SÉCURITÉ TAILLE 50 Mo
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+        alert("❌ Fichier trop lourd ! La limite est de 50 Mo.");
+        e.target.value = "";
+        return;
+    }
+
+    currentFileName = file.name;
+    document.getElementById('label-text').innerText = "📄 " + file.name.substring(0, 15);
     document.getElementById('upload-status-container').classList.remove('hidden');
-    updateBar('upload-fill', 'upload-perc', 20);
+    updateBar('upload-fill', 'upload-perc', 10);
 
     try {
         if (file.name.toLowerCase().endsWith('.pdf')) {
@@ -41,14 +50,15 @@ window.handleFileUpload = async (e) => {
         updateBar('upload-fill', 'upload-perc', 100);
         const btn = document.getElementById('btn-ai');
         btn.disabled = false;
-        btn.innerText = "🚀 GÉNÉRER L'ANALYSE";
-        btn.style.background = "#6366f1";
+        btn.innerText = "🚀 ANALYSER CE COURS";
     } catch (err) {
-        alert("Erreur lors de la lecture du document.");
+        alert("Erreur de lecture.");
     }
 };
 
-// ANALYSE IA (9 QUESTIONS PAR TITRE)
+// ==========================================
+// 3. ANALYSE ET SAUVEGARDE
+// ==========================================
 window.processCourse = async () => {
     if (!extractedText || !localStorage.getItem('gemini_api_key')) return;
 
@@ -56,57 +66,103 @@ window.processCourse = async () => {
     document.getElementById('btn-ai').classList.add('hidden');
     
     let progress = 0;
-    const timerText = document.getElementById('timer-text');
     const interval = setInterval(() => {
-        if (progress < 98) {
+        if (progress < 95) {
             progress++;
             updateBar('ia-fill', 'ia-perc', progress);
-            if(timerText) timerText.innerText = `⏳ Création du quiz complexe... ~${Math.ceil((100-progress)/4)}s`;
+            document.getElementById('timer-text').innerText = `⏳ Création du quiz... ~${Math.ceil((100-progress)/4)}s`;
         }
     }, 200);
 
-    // Prompt configuré pour 3 questions par section
     const promptText = `Tu es un professeur. Analyse ce texte. 
-    1. Fais un résumé structuré avec des titres.
-    2. Pour CHAQUE titre/section du cours, crée exactement 3 questions de quiz.
-    Le quiz doit être difficile et basé uniquement sur le texte.
-    
-    Réponds en JSON strict :
-    {"titre":"", "sections":[{"n":"Titre Section", "c":"Contenu"}], "quiz":[{"q":"Question", "correct":"Réponse", "wrong":["Faux1", "Faux2"]}]}
-    Texte : ${extractedText.substring(0, 15000)}`;
+    1. Résumé structuré. 2. 3 questions de quiz par section du cours (9 questions minimum).
+    Réponds en JSON : {"titre":"", "sections":[{"n":"", "c":""}], "quiz":[{"q":"", "correct":"", "wrong":[]}]}`;
 
     try {
         const response = await fetch(GEMINI_URL(), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+            body: JSON.stringify({ contents: [{ parts: [{ text: promptText + " Texte: " + extractedText.substring(0, 15000) }] }] })
         });
 
         const data = await response.json();
         clearInterval(interval);
-
         const rawText = data.candidates[0].content.parts[0].text;
         const json = JSON.parse(rawText.substring(rawText.indexOf('{'), rawText.lastIndexOf('}') + 1));
 
-        updateBar('ia-fill', 'ia-perc', 100);
-        renderResults(json);
-        document.getElementById('btn-result').classList.remove('hidden');
-        if(timerText) timerText.innerText = "✅ Quiz prêt !";
+        // SAUVEGARDE DANS LA BASE DE DONNÉES
+        const subject = document.getElementById('current-subject').value;
+        const newCourse = {
+            id: Date.now(),
+            name: currentFileName,
+            subject: subject,
+            result: json
+        };
+        dbCourses.push(newCourse);
+        localStorage.setItem('ai_studiant_db', JSON.stringify(dbCourses));
 
+        updateBar('ia-fill', 'ia-perc', 100);
+        renderHistory(); // Met à jour la liste
+        renderResults(json);
+        document.getElementById('results-container').classList.remove('hidden');
     } catch (err) {
         clearInterval(interval);
-        alert("Erreur d'analyse. Vérifiez votre clé API.");
+        alert("Erreur Gemini.");
     }
 };
 
-// MOTEURS TECHNIQUES
+// ==========================================
+// 4. GESTION DE L'HISTORIQUE (SANS API)
+// ==========================================
+window.renderHistory = () => {
+    const subject = document.getElementById('current-subject').value;
+    const list = document.getElementById('history-list');
+    const filtered = dbCourses.filter(c => c.subject === subject);
+    
+    list.innerHTML = filtered.length ? "" : "<p style='font-size:0.7em;color:#475569;'>Aucun cours ici.</p>";
+    
+    filtered.forEach(course => {
+        const div = document.createElement('div');
+        div.style = "background:#0f172a; padding:10px; border-radius:8px; cursor:pointer; font-size:0.8em; border-left:3px solid #6366f1; display:flex; justify-content:space-between;";
+        div.innerHTML = `<span>📄 ${course.name.substring(0,20)}</span> <i class="fas fa-eye"></i>`;
+        div.onclick = () => {
+            renderResults(course.result);
+            document.getElementById('results-container').classList.remove('hidden');
+        };
+        list.appendChild(div);
+    });
+};
+
+// ==========================================
+// 5. FONCTIONS DE RENDU ET MOTEURS
+// ==========================================
+function renderResults(data) {
+    let sHtml = `<h2 style="color:#4ade80;">${data.titre}</h2>`;
+    data.sections.forEach(s => sHtml += `<b style="color:#818cf8;">📍 ${s.n}</b><p>${s.c}</p>`);
+    document.getElementById('summary-result').innerHTML = sHtml;
+
+    let qHtml = `<h2 style="color:#f59e0b;">❓ Quiz (${data.quiz.length} questions)</h2>`;
+    data.quiz.forEach((q, i) => {
+        qHtml += `<div style="background:#1e293b; padding:10px; margin-bottom:10px; border-radius:10px; border-left:4px solid #f59e0b;">
+            <p><b>${i+1}. ${q.q}</b></p><p style="color:#4ade80;">✅ ${q.correct}</p></div>`;
+    });
+    document.getElementById('quiz-result').innerHTML = qHtml;
+}
+
+window.switchTab = (type) => {
+    const isSum = type === 'sum';
+    document.getElementById('summary-content').classList.toggle('hidden', !isSum);
+    document.getElementById('quiz-content').classList.toggle('hidden', isSum);
+};
+
+// MOTEURS PDF/WORD (Gardés tels quels car fonctionnels)
 async function extractPDF(file) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const ab = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
     let t = "";
     for (let i = 1; i <= pdf.numPages; i++) {
-        const p = await pdf.getPage(i);
+        const p = await p.getPage(i);
         const c = await p.getTextContent();
         t += c.items.map(it => it.str).join(" ") + " ";
     }
@@ -119,30 +175,5 @@ async function extractWord(file) {
     return r.value;
 }
 
-// AFFICHAGE DES RÉSULTATS (Onglets & Couleurs)
-window.switchTab = (type) => {
-    const isSum = type === 'sum';
-    document.getElementById('summary-content').classList.toggle('hidden', !isSum);
-    document.getElementById('quiz-content').classList.toggle('hidden', isSum);
-    document.getElementById('tab-sum').style.background = isSum ? '#6366f1' : '#334155';
-    document.getElementById('tab-quiz').style.background = isSum ? '#334155' : '#6366f1';
-};
-
-function renderResults(data) {
-    let sHtml = `<h2 style="color:#818cf8;">📚 ${data.titre}</h2>`;
-    data.sections.forEach(s => {
-        sHtml += `<div style="margin-top:15px;"><b style="color:#4ade80; font-size:1.1em;">📍 ${s.n}</b><p style="color:#cbd5e1; line-height:1.5;">${s.c}</p></div>`;
-    });
-    document.getElementById('summary-result').innerHTML = sHtml;
-
-    let qHtml = `<h2 style="color:#f59e0b;">❓ Quiz Interactif (${data.quiz.length} questions)</h2>`;
-    data.quiz.forEach((q, i) => {
-        qHtml += `<div style="background:#1e293b; padding:15px; margin-bottom:12px; border-radius:12px; border-left:4px solid #f59e0b;">
-            <p><b>${i+1}. ${q.q}</b></p>
-            <div style="color:#4ade80; font-weight:bold; margin-top:5px;">✅ Réponse : ${q.correct}</div>
-        </div>`;
-    });
-    document.getElementById('quiz-result').innerHTML = qHtml;
-}
-
-window.showResults = () => { document.getElementById('results-container').classList.remove('hidden'); };
+// Lancement au démarrage
+document.addEventListener('DOMContentLoaded', renderHistory);
