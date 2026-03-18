@@ -1,23 +1,19 @@
-// ==========================================
-// 1. CONFIGURATION & CLÉ API
-// ==========================================
 let GEMINI_API_KEY = localStorage.getItem('gemini_api_key');
 const GEMINI_URL = () => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${localStorage.getItem('gemini_api_key')}`;
-
 let extractedText = "";
 
+// GESTION CLÉ API (Mobile & PC)
 window.askNewKey = () => {
-    const key = prompt("🔑 Collez votre clé API Gemini (commençant par AIza) :");
+    const key = prompt("🔑 Collez votre clé API Gemini (AIza...) :");
     if (key && key.trim().length > 10) {
         localStorage.setItem('gemini_api_key', key.trim());
-        alert("✅ Clé enregistrée !");
+        alert("✅ Clé enregistrée avec succès !");
         location.reload();
     }
 };
 
-// Si aucune clé n'est présente au démarrage
 if (!GEMINI_API_KEY) {
-    setTimeout(() => { if(!localStorage.getItem('gemini_api_key')) askNewKey(); }, 1500);
+    setTimeout(() => { if(!localStorage.getItem('gemini_api_key')) askNewKey(); }, 2000);
 }
 
 function updateBar(id, percId, value) {
@@ -27,18 +23,14 @@ function updateBar(id, percId, value) {
     if (text) text.innerText = value + "%";
 }
 
-// ==========================================
-// 2. GESTION DU FICHIER (OPTIMISÉ MOBILE)
-// ==========================================
+// LECTURE DU FICHIER
 window.handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const labelText = document.getElementById('label-text');
-    if(labelText) labelText.innerText = "📄 " + file.name.substring(0, 15) + "...";
-
+    document.getElementById('label-text').innerText = "📄 " + file.name.substring(0, 20);
     document.getElementById('upload-status-container').classList.remove('hidden');
-    updateBar('upload-fill', 'upload-perc', 10);
+    updateBar('upload-fill', 'upload-perc', 20);
 
     try {
         if (file.name.toLowerCase().endsWith('.pdf')) {
@@ -46,40 +38,41 @@ window.handleFileUpload = async (e) => {
         } else {
             extractedText = await extractWord(file);
         }
-        
         updateBar('upload-fill', 'upload-perc', 100);
-        const btnAi = document.getElementById('btn-ai');
-        btnAi.disabled = false;
-        btnAi.innerText = "🚀 ANALYSER LE COURS";
-        btnAi.style.background = "#6366f1";
+        const btn = document.getElementById('btn-ai');
+        btn.disabled = false;
+        btn.innerText = "🚀 GÉNÉRER L'ANALYSE";
+        btn.style.background = "#6366f1";
     } catch (err) {
-        alert("Erreur de lecture du fichier.");
+        alert("Erreur lors de la lecture du document.");
     }
 };
 
-// ==========================================
-// 3. ANALYSE IA AVEC PROGRESSION RÉELLE (1%...2%...)
-// ==========================================
+// ANALYSE IA (9 QUESTIONS PAR TITRE)
 window.processCourse = async () => {
-    if (!extractedText) return;
-    if (!localStorage.getItem('gemini_api_key')) { askNewKey(); return; }
+    if (!extractedText || !localStorage.getItem('gemini_api_key')) return;
 
     document.getElementById('ia-detail-container').classList.remove('hidden');
     document.getElementById('btn-ai').classList.add('hidden');
     
-    // Animation de progression (environ 15 secondes)
     let progress = 0;
     const timerText = document.getElementById('timer-text');
     const interval = setInterval(() => {
-        if (progress < 95) {
+        if (progress < 98) {
             progress++;
             updateBar('ia-fill', 'ia-perc', progress);
-            if(timerText) timerText.innerText = `⏳ Patience... ~${Math.ceil((100-progress)/6)}s restantes`;
+            if(timerText) timerText.innerText = `⏳ Création du quiz complexe... ~${Math.ceil((100-progress)/4)}s`;
         }
-    }, 150);
+    }, 200);
 
-    const promptText = `Analyse ce cours. Donne un titre, un résumé structuré et un quiz de 3 questions. 
-    Réponds uniquement en JSON : {"titre":"", "sections":[{"n":"", "c":""}], "quiz":[{"q":"", "correct":"", "wrong":[]}]}
+    // Prompt configuré pour 3 questions par section
+    const promptText = `Tu es un professeur. Analyse ce texte. 
+    1. Fais un résumé structuré avec des titres.
+    2. Pour CHAQUE titre/section du cours, crée exactement 3 questions de quiz.
+    Le quiz doit être difficile et basé uniquement sur le texte.
+    
+    Réponds en JSON strict :
+    {"titre":"", "sections":[{"n":"Titre Section", "c":"Contenu"}], "quiz":[{"q":"Question", "correct":"Réponse", "wrong":["Faux1", "Faux2"]}]}
     Texte : ${extractedText.substring(0, 15000)}`;
 
     try {
@@ -92,26 +85,21 @@ window.processCourse = async () => {
         const data = await response.json();
         clearInterval(interval);
 
-        if (data.error) throw new Error(data.error.message);
-
-        updateBar('ia-fill', 'ia-perc', 100);
         const rawText = data.candidates[0].content.parts[0].text;
         const json = JSON.parse(rawText.substring(rawText.indexOf('{'), rawText.lastIndexOf('}') + 1));
 
+        updateBar('ia-fill', 'ia-perc', 100);
         renderResults(json);
         document.getElementById('btn-result').classList.remove('hidden');
-        if(timerText) timerText.innerText = "✨ Analyse terminée !";
+        if(timerText) timerText.innerText = "✅ Quiz prêt !";
 
     } catch (err) {
         clearInterval(interval);
-        alert("Erreur : " + err.message);
-        document.getElementById('btn-ai').classList.remove('hidden');
+        alert("Erreur d'analyse. Vérifiez votre clé API.");
     }
 };
 
-// ==========================================
-// 4. MOTEURS ET ONGLET
-// ==========================================
+// MOTEURS TECHNIQUES
 async function extractPDF(file) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const ab = await file.arrayBuffer();
@@ -131,6 +119,7 @@ async function extractWord(file) {
     return r.value;
 }
 
+// AFFICHAGE DES RÉSULTATS (Onglets & Couleurs)
 window.switchTab = (type) => {
     const isSum = type === 'sum';
     document.getElementById('summary-content').classList.toggle('hidden', !isSum);
@@ -140,16 +129,17 @@ window.switchTab = (type) => {
 };
 
 function renderResults(data) {
-    let html = `<h2 style="color:#4ade80;">${data.titre}</h2>`;
+    let sHtml = `<h2 style="color:#818cf8;">📚 ${data.titre}</h2>`;
     data.sections.forEach(s => {
-        html += `<b style="color:#818cf8;display:block;margin-top:15px;">📍 ${s.n}</b><p>${s.c}</p>`;
+        sHtml += `<div style="margin-top:15px;"><b style="color:#4ade80; font-size:1.1em;">📍 ${s.n}</b><p style="color:#cbd5e1; line-height:1.5;">${s.c}</p></div>`;
     });
-    document.getElementById('summary-result').innerHTML = html;
+    document.getElementById('summary-result').innerHTML = sHtml;
 
-    let qHtml = "<h3>Quiz</h3>";
-    data.quiz.forEach(q => {
-        qHtml += `<div class="quiz-card" style="background:#1e293b;padding:10px;margin-bottom:10px;border-radius:10px;">
-            <p><b>${q.q}</b></p><p style="color:#4ade80;">✅ ${q.correct}</p>
+    let qHtml = `<h2 style="color:#f59e0b;">❓ Quiz Interactif (${data.quiz.length} questions)</h2>`;
+    data.quiz.forEach((q, i) => {
+        qHtml += `<div style="background:#1e293b; padding:15px; margin-bottom:12px; border-radius:12px; border-left:4px solid #f59e0b;">
+            <p><b>${i+1}. ${q.q}</b></p>
+            <div style="color:#4ade80; font-weight:bold; margin-top:5px;">✅ Réponse : ${q.correct}</div>
         </div>`;
     });
     document.getElementById('quiz-result').innerHTML = qHtml;
