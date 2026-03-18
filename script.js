@@ -3,52 +3,49 @@ let extractedText = "";
 let currentFileName = "";
 
 window.askNewKey = () => {
-    const key = prompt("🔑 Entrez votre clé API Gemini :");
+    const key = prompt("🔑 Collez votre clé API Gemini :");
     if (key) { localStorage.setItem('gemini_api_key', key.trim()); location.reload(); }
 };
 
-function updateBar(id, percId, value) {
+function updateBar(id, value) {
     const bar = document.getElementById(id);
-    const text = document.getElementById(percId);
     if (bar) bar.style.width = value + "%";
-    if (text) text.innerText = value + "%";
 }
 
-// LECTURE DES FICHIERS (PDF, WORD, TXT)
+// LECTURE DES FICHIERS
 window.handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     currentFileName = file.name;
     document.getElementById('label-text').innerText = "📄 " + file.name.substring(0, 15);
     document.getElementById('upload-status-container').classList.remove('hidden');
-    updateBar('upload-fill', 'upload-perc', 10);
+    updateBar('upload-fill', 30);
 
     try {
-        const ext = file.name.toLowerCase();
-        if (ext.endsWith('.pdf')) {
+        const name = file.name.toLowerCase();
+        if (name.endsWith('.pdf')) {
             extractedText = await extractPDF(file);
-        } else if (ext.endsWith('.docx')) {
+        } else if (name.endsWith('.docx')) {
             extractedText = await extractWord(file);
         } else {
             extractedText = await file.text();
         }
-        updateBar('upload-fill', 'upload-perc', 100);
+        updateBar('upload-fill', 100);
         document.getElementById('btn-ai').disabled = false;
-        document.getElementById('btn-ai').innerText = "🚀 ANALYSER";
-    } catch (err) { alert("Erreur de lecture"); }
+    } catch (err) { alert("Erreur de lecture du fichier."); }
 };
 
 async function extractPDF(file) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const ab = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
-    let t = "";
+    let text = "";
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        t += content.items.map(it => it.str).join(" ") + " ";
+        text += content.items.map(it => it.str).join(" ") + " ";
     }
-    return t;
+    return text;
 }
 
 async function extractWord(file) {
@@ -57,29 +54,30 @@ async function extractWord(file) {
     return r.value;
 }
 
-// APPEL API GEMINI (CORRIGÉ)
+// ANALYSE GEMINI (URL CORRIGÉE)
 window.processCourse = async () => {
     const key = localStorage.getItem('gemini_api_key');
-    if (!extractedText || !key) { alert("Clé API manquante !"); return; }
+    if (!key) { alert("Veuillez entrer votre clé API 🔑"); return; }
 
     document.getElementById('ia-detail-container').classList.remove('hidden');
     document.getElementById('btn-ai').classList.add('hidden');
     
     let prog = 0;
-    const interval = setInterval(() => { if (prog < 95) { prog++; updateBar('ia-fill', 'ia-perc', prog); } }, 200);
+    const interval = setInterval(() => { if (prog < 90) { prog++; updateBar('ia-fill', prog); } }, 150);
 
-    // URL CONSTRUITE DE MANIÈRE SÉCURISÉE
+    // URL vérifiée : gemini-1.5-flash est le nom de modèle stable standard
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
 
-    const promptText = `Analyse ce cours. Réponds uniquement en JSON : {"titre":"", "sections":[{"n":"", "c":""}], "quiz":[{"q":"", "correct":"", "wrong":[]}]}. Texte : ${extractedText.substring(0, 20000)}`;
+    const promptText = `Analyse ce texte et réponds UNIQUEMENT en JSON : {"titre":"", "sections":[{"n":"", "c":""}], "quiz":[{"q":"", "correct":"", "wrong":[]}]}. Texte : ${extractedText.substring(0, 20000)}`;
 
     try {
-        const res = await fetch(url, {
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
-        const data = await res.json();
+        
+        const data = await response.json();
         clearInterval(interval);
         
         if (data.error) throw new Error(data.error.message);
@@ -94,33 +92,34 @@ window.processCourse = async () => {
         renderHistory();
         renderResults(json);
         document.getElementById('results-container').classList.remove('hidden');
+        updateBar('ia-fill', 100);
     } catch (err) { 
-        clearInterval(interval); 
-        alert("Erreur : " + err.message); 
+        clearInterval(interval);
+        alert("Erreur IA : " + err.message);
         document.getElementById('btn-ai').classList.remove('hidden');
     }
 };
 
-// HISTORIQUE ET BOUTON SUPPRIMER
+// HISTORIQUE ET SUPPRESSION
 window.renderHistory = () => {
     const sub = document.getElementById('current-subject').value;
     const list = document.getElementById('history-list');
     const filtered = dbCourses.filter(c => c.subject === sub);
-    list.innerHTML = filtered.length ? "" : "<p style='font-size:0.7em;color:#475569;'>Aucun cours.</p>";
+    list.innerHTML = filtered.length ? "" : "<p style='font-size:0.7em; text-align:center; color:#475569;'>Aucun cours enregistré.</p>";
     
-    filtered.forEach(c => {
+    filtered.forEach(course => {
         const div = document.createElement('div');
-        div.style = "background:#0f172a; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; border-left:3px solid #6366f1;";
+        div.style = "background:#0f172a; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; border-left:3px solid #6366f1; margin-bottom:5px;";
         div.innerHTML = `
-            <span onclick="viewCourse(${c.id})" style="flex:1; cursor:pointer; font-size:0.8em; color:white;">📄 ${c.name.substring(0,15)}</span>
-            <i class="fas fa-trash-alt" onclick="deleteCourse(${c.id})" style="color:#ef4444; cursor:pointer; padding:5px;"></i>
+            <div onclick="viewCourse(${course.id})" style="flex:1; cursor:pointer; font-size:0.8em; color:white;">📄 ${course.name.substring(0,18)}</div>
+            <i class="fas fa-trash-alt" onclick="deleteCourse(${course.id})" style="color:#ef4444; padding:5px; cursor:pointer;"></i>
         `;
         list.appendChild(div);
     });
 };
 
 window.deleteCourse = (id) => {
-    if(confirm("Supprimer ce cours ?")) {
+    if(confirm("Supprimer ce cours définitivement ?")) {
         dbCourses = dbCourses.filter(c => c.id !== id);
         localStorage.setItem('ai_studiant_db', JSON.stringify(dbCourses));
         renderHistory();
@@ -133,11 +132,11 @@ window.viewCourse = (id) => {
 };
 
 function renderResults(data) {
-    let s = `<h2>${data.titre}</h2>`;
-    data.sections.forEach(sec => s += `<b>📍 ${sec.n}</b><p>${sec.c}</p>`);
+    let s = `<h2 style="color:#4ade80;">📚 ${data.titre}</h2>`;
+    data.sections.forEach(sec => s += `<div style="margin-top:10px;"><b style="color:#818cf8;">📍 ${sec.n}</b><p style="color:#cbd5e1; font-size:0.9em;">${sec.c}</p></div>`);
     document.getElementById('summary-result').innerHTML = s;
-    let q = `<h3>Quiz</h3>`;
-    data.quiz.forEach((qz, i) => q += `<div style="background:#1e293b; padding:10px; margin-bottom:10px; border-radius:8px;"><b>${i+1}. ${qz.q}</b><br><span style="color:#4ade80;">✅ ${qz.correct}</span></div>`);
+    let q = `<h3 style="color:#f59e0b;">❓ Quiz</h3>`;
+    data.quiz.forEach((qz, i) => q += `<div style="background:#1e293b; padding:10px; margin-top:10px; border-radius:8px; border:1px solid #334155;"><p style="color:white;"><b>${i+1}. ${qz.q}</b></p><p style="color:#4ade80; font-weight:bold;">✅ ${qz.correct}</p></div>`);
     document.getElementById('quiz-result').innerHTML = q;
 }
 
