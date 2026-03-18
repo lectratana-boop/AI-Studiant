@@ -30,34 +30,32 @@
                     <option value="SVT">🌿 SVT</option>
                 </select>
                 <div id="course-history" style="margin-top: 15px;">
-                    <p style="font-size: 0.8em; color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 5px;">Mes cours enregistrés :</p>
+                    <p style="font-size: 0.8em; color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 5px;">Cours sauvegardés :</p>
                     <div id="history-list" style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
                 </div>
             </div>
 
             <div class="upload-section">
                 <label for="file-upload" class="custom-file-upload">
-                    <i class="fas fa-plus-circle"></i> <span id="label-text">Ajouter PDF, Word ou TXT</span>
+                    <i class="fas fa-plus-circle"></i> <span id="label-text">Charger PDF, Word, TXT</span>
                 </label>
                 <input id="file-upload" type="file" accept=".pdf,.docx,.txt" onchange="handleFileUpload(event)"/>
                 
                 <div id="upload-status-container" class="hidden">
-                    <div class="status-info"><span>Lecture...</span><span id="upload-perc">0%</span></div>
                     <div class="progress-bar"><div id="upload-fill"></div></div>
                 </div>
 
-                <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">Choisir un fichier</button>
+                <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">Analyser le fichier</button>
                 
                 <div id="ia-detail-container" class="hidden">
-                    <div class="status-info"><span>Analyse IA...</span><span id="ia-perc">0%</span></div>
                     <div class="progress-bar"><div id="ia-fill" class="orange"></div></div>
                 </div>
             </div>
 
             <div id="results-container" class="hidden" style="margin-top: 20px;">
                 <div style="display: flex; gap: 5px; margin-bottom: 15px;">
-                    <button id="tab-sum" onclick="switchTab('sum')" style="flex:1; padding: 12px; border-radius: 10px; border:none; background:#6366f1; color:white;">📖 Résumé</button>
-                    <button id="tab-quiz" onclick="switchTab('quiz')" style="flex:1; padding: 12px; border-radius: 10px; border:none; background:#334155; color:white;">❓ Quiz</button>
+                    <button id="tab-sum" onclick="switchTab('sum')" style="flex:1; padding: 12px; border-radius: 10px; border:none; background:#6366f1; color:white; font-weight:bold;">Résumé</button>
+                    <button id="tab-quiz" onclick="switchTab('quiz')" style="flex:1; padding: 12px; border-radius: 10px; border:none; background:#334155; color:white; font-weight:bold;">Quiz</button>
                 </div>
                 <div id="summary-content"><div id="summary-result"></div></div>
                 <div id="quiz-content" class="hidden"><div id="quiz-result"></div></div>
