@@ -3,23 +3,25 @@ let extractedText = "";
 let currentFileName = "";
 
 window.askNewKey = () => {
-    const key = prompt("🔑 Entrez votre clé API Gemini :");
+    const key = prompt("🔑 Collez votre clé API Gemini (AIza...) :");
     if (key) { localStorage.setItem('gemini_api_key', key.trim()); location.reload(); }
 };
 
-function updateBar(id, value) {
+function updateBar(id, percId, value) {
     const bar = document.getElementById(id);
+    const text = document.getElementById(percId);
     if (bar) bar.style.width = value + "%";
+    if (text) text.innerText = value + "%";
 }
 
-// 1. LECTURE DES FICHIERS (PDF, WORD, TXT)
+// LECTURE DES DOCUMENTS (PDF, WORD, TXT)
 window.handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     currentFileName = file.name;
     document.getElementById('label-text').innerText = "📄 " + file.name.substring(0, 15);
     document.getElementById('upload-status-container').classList.remove('hidden');
-    updateBar('upload-fill', 30);
+    updateBar('upload-fill', null, 30);
 
     try {
         const ext = file.name.toLowerCase();
@@ -30,23 +32,23 @@ window.handleFileUpload = async (e) => {
         } else {
             extractedText = await file.text();
         }
-        updateBar('upload-fill', 100);
+        updateBar('upload-fill', null, 100);
         document.getElementById('btn-ai').disabled = false;
-        document.getElementById('btn-ai').innerText = "🚀 ANALYSER";
-    } catch (err) { alert("Erreur de lecture du document."); }
+        document.getElementById('btn-ai').innerText = "🚀 LANCER L'ANALYSE";
+    } catch (err) { alert("Erreur de lecture du fichier"); }
 };
 
 async function extractPDF(file) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const ab = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
-    let t = "";
+    let text = "";
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        t += content.items.map(it => it.str).join(" ") + " ";
+        text += content.items.map(it => it.str).join(" ") + " ";
     }
-    return t;
+    return text;
 }
 
 async function extractWord(file) {
@@ -55,29 +57,29 @@ async function extractWord(file) {
     return r.value;
 }
 
-// 2. ANALYSE GEMINI (URL ULTRA-STABLE)
+// ANALYSE IA (URL DYNAMIQUE POUR EVITER L'ERREUR)
 window.processCourse = async () => {
     const key = localStorage.getItem('gemini_api_key');
-    if (!extractedText || !key) { alert("Clé manquante !"); return; }
+    if (!key) { alert("Veuillez configurer votre clé API 🔑"); return; }
 
     document.getElementById('ia-detail-container').classList.remove('hidden');
     document.getElementById('btn-ai').classList.add('hidden');
     
     let prog = 0;
-    const interval = setInterval(() => { if (prog < 95) { prog++; updateBar('ia-fill', prog); } }, 200);
+    const interval = setInterval(() => { if (prog < 95) { prog++; updateBar('ia-fill', 'ia-perc', prog); } }, 200);
 
-    // URL vérifiée : gemini-1.5-flash est la plus compatible
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    // URL CONSTRUITE DYNAMIQUEMENT POUR EVITER LES BUGS
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
 
-    const promptText = `Analyse ce cours et réponds en JSON : {"titre":"", "sections":[{"n":"", "c":""}], "quiz":[{"q":"", "correct":"", "wrong":[]}]}. Texte : ${extractedText.substring(0, 20000)}`;
+    const promptText = `Analyse ce cours et réponds en JSON uniquement : {"titre":"", "sections":[{"n":"", "c":""}], "quiz":[{"q":"", "correct":"", "wrong":[]}]}. Texte : ${extractedText.substring(0, 20000)}`;
 
     try {
-        const res = await fetch(url, {
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
-        const data = await res.json();
+        const data = await response.json();
         clearInterval(interval);
         
         if (data.error) throw new Error(data.error.message);
@@ -93,32 +95,32 @@ window.processCourse = async () => {
         renderResults(json);
         document.getElementById('results-container').classList.remove('hidden');
     } catch (err) { 
-        clearInterval(interval); 
-        alert("Erreur Gemini : " + err.message); 
+        clearInterval(interval);
+        alert("Erreur critique : " + err.message);
         document.getElementById('btn-ai').classList.remove('hidden');
     }
 };
 
-// 3. HISTORIQUE ET SUPPRESSION
+// HISTORIQUE ET SUPPRESSION
 window.renderHistory = () => {
     const sub = document.getElementById('current-subject').value;
     const list = document.getElementById('history-list');
     const filtered = dbCourses.filter(c => c.subject === sub);
-    list.innerHTML = filtered.length ? "" : "<p style='font-size:0.7em;color:#475569;'>Aucun cours.</p>";
+    list.innerHTML = filtered.length ? "" : "<p style='font-size:0.7em;color:#475569;text-align:center;'>Vide.</p>";
     
-    filtered.forEach(c => {
+    filtered.forEach(course => {
         const div = document.createElement('div');
-        div.style = "background:#0f172a; padding:8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; border-left:3px solid #6366f1; margin-bottom:5px;";
+        div.style = "background:#0f172a; padding:10px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; border-left:3px solid #6366f1; margin-bottom:5px;";
         div.innerHTML = `
-            <span onclick="viewCourse(${c.id})" style="flex:1; cursor:pointer; font-size:0.8em; color:white;">📄 ${c.name.substring(0,15)}</span>
-            <i class="fas fa-trash-alt" onclick="deleteCourse(${c.id})" style="color:#ef4444; cursor:pointer; padding:5px;"></i>
+            <div onclick="viewCourse(${course.id})" style="flex:1; cursor:pointer; font-size:0.8em; color:white;">📄 ${course.name.substring(0,18)}</div>
+            <i class="fas fa-trash-alt" onclick="deleteCourse(${course.id})" style="color:#ef4444; padding:5px; cursor:pointer;"></i>
         `;
         list.appendChild(div);
     });
 };
 
 window.deleteCourse = (id) => {
-    if(confirm("Supprimer ce cours ?")) {
+    if(confirm("Supprimer ce cours définitivement ?")) {
         dbCourses = dbCourses.filter(c => c.id !== id);
         localStorage.setItem('ai_studiant_db', JSON.stringify(dbCourses));
         renderHistory();
@@ -131,11 +133,11 @@ window.viewCourse = (id) => {
 };
 
 function renderResults(data) {
-    let s = `<h2>${data.titre}</h2>`;
-    data.sections.forEach(sec => s += `<b>📍 ${sec.n}</b><p>${sec.c}</p>`);
+    let s = `<h2>📚 ${data.titre}</h2>`;
+    data.sections.forEach(sec => s += `<div style="margin-top:10px;"><b style="color:#818cf8;">📍 ${sec.n}</b><p style="color:#cbd5e1;">${sec.c}</p></div>`);
     document.getElementById('summary-result').innerHTML = s;
-    let q = `<h3>Quiz</h3>`;
-    data.quiz.forEach((qz, i) => q += `<div style="background:#1e293b; padding:10px; margin-bottom:10px; border-radius:8px;"><b>${i+1}. ${qz.q}</b><br><span style="color:#4ade80;">✅ ${qz.correct}</span></div>`);
+    let q = `<h3>❓ Quiz d'auto-évaluation</h3>`;
+    data.quiz.forEach((qz, i) => q += `<div style="background:#1e293b; padding:10px; margin-top:10px; border-radius:8px;"><p><b>${i+1}. ${qz.q}</b></p><p style="color:#4ade80; font-weight:bold;">✅ ${qz.correct}</p></div>`);
     document.getElementById('quiz-result').innerHTML = q;
 }
 
@@ -143,6 +145,8 @@ window.switchTab = (t) => {
     const isSum = t === 'sum';
     document.getElementById('summary-content').classList.toggle('hidden', !isSum);
     document.getElementById('quiz-content').classList.toggle('hidden', isSum);
+    document.getElementById('tab-sum').style.background = isSum ? '#6366f1' : '#334155';
+    document.getElementById('tab-quiz').style.background = isSum ? '#334155' : '#6366f1';
 };
 
 document.addEventListener('DOMContentLoaded', renderHistory);
