@@ -1,16 +1,18 @@
 // 1. CONFIGURATION
 let GEMINI_API_KEY = localStorage.getItem('gemini_api_key');
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+// ✅ MISE À JOUR VERS GEMINI 3 FLASH
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 let extractedText = "";
 
-// Fonction pour animer les barres de progression
 function updateBar(id, percId, value) {
-    document.getElementById(id).style.width = value + "%";
-    document.getElementById(percId).innerText = value + "%";
+    const bar = document.getElementById(id);
+    if(bar) bar.style.width = value + "%";
+    const text = document.getElementById(percId);
+    if(text) text.innerText = value + "%";
 }
 
-// 2. LECTURE ULTRA-RAPIDE
+// 2. LECTURE DU FICHIER
 window.handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -19,57 +21,67 @@ window.handleFileUpload = async (e) => {
     updateBar('upload-fill', 'upload-perc', 10);
 
     try {
-        updateBar('upload-fill', 'upload-perc', 30);
         if (file.name.endsWith('.pdf')) {
             extractedText = await extractPDF(file);
         } else {
             extractedText = await extractWord(file);
         }
-        
         updateBar('upload-fill', 'upload-perc', 100);
         document.getElementById('btn-ai').disabled = false;
         document.getElementById('btn-ai').style.opacity = "1";
     } catch (err) {
-        alert("Erreur de lecture du fichier.");
+        alert("Erreur lors de la lecture du fichier.");
     }
 };
 
-// 3. ANALYSE GEMINI AVEC PROGRESSION SIMULÉE
+// 3. ANALYSE IA OPTIMISÉE
 window.processCourse = async () => {
     if (!extractedText) return;
     
     document.getElementById('ia-detail-container').classList.remove('hidden');
     document.getElementById('btn-ai').classList.add('hidden');
 
-    // Simulation de progression pour l'IA (pendant l'appel réseau)
-    let progress = 0;
+    let progress = 5;
+    updateBar('ia-fill', 'ia-perc', progress);
+
+    // Simulation lente pour rassurer l'utilisateur
     const interval = setInterval(() => {
-        if (progress < 90) {
-            progress += 5;
+        if (progress < 85) {
+            progress += 2;
             updateBar('ia-fill', 'ia-perc', progress);
         }
-    }, 400);
+    }, 800);
 
-    const promptText = `Tu es un expert en pédagogie. Analyse ce cours et génère un résumé structuré et un quiz de 5 questions.
-    Réponds UNIQUEMENT en JSON pur avec cette structure précise :
-    {"titre":"...", "intro":"...", "points":["..."], "quiz":[{"q":"...", "correct":"...", "wrong":["..."]}]}
-    Contenu : ${extractedText.substring(0, 20000)}`;
+    // On réduit la taille pour éviter les erreurs de connexion "Payload Too Large"
+    const safeText = extractedText.substring(0, 10000);
+
+    const payload = {
+        contents: [{
+            parts: [{ text: `Analyse ce cours. Donne un titre, un résumé court et 5 questions de quiz. Réponds uniquement en JSON : {"titre":"", "intro":"", "points":[], "quiz":[{"q":"", "correct":"", "wrong":[]}]} \n\nTexte : ${safeText}` }]
+        }],
+        generationConfig: {
+            temperature: 0.7,
+            topP: 0.95,
+            maxOutputTokens: 2000,
+        }
+    };
 
     try {
         const response = await fetch(GEMINI_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+            body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
-        clearInterval(interval); // On arrête la simulation
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error.message || "Erreur réseau");
+        }
 
-        if (data.error) throw new Error(data.error.message);
+        const data = await response.json();
+        clearInterval(interval);
 
         const rawText = data.candidates[0].content.parts[0].text;
-        
-        // Nettoyage et Parsing sécurisé
         const start = rawText.indexOf('{');
         const end = rawText.lastIndexOf('}') + 1;
         const jsonContent = JSON.parse(rawText.substring(start, end));
@@ -79,13 +91,13 @@ window.processCourse = async () => {
 
     } catch (err) {
         clearInterval(interval);
-        console.error(err);
-        alert("Erreur d'analyse IA. Vérifiez votre connexion.");
+        console.error("Détail erreur:", err);
+        alert("⚠️ L'analyse a échoué. Cause possible : " + err.message);
         document.getElementById('btn-ai').classList.remove('hidden');
     }
 };
 
-// 4. MOTEURS D'EXTRACTION (PDF/WORD)
+// --- MOTEURS (NE PAS MODIFIER) ---
 async function extractPDF(file) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const ab = await file.arrayBuffer();
@@ -95,8 +107,6 @@ async function extractPDF(file) {
         const p = await pdf.getPage(i);
         const c = await p.getTextContent();
         t += c.items.map(it => it.str).join(" ") + " ";
-        // Mise à jour de la barre pendant la lecture des pages
-        updateBar('upload-fill', 'upload-perc', Math.round((i / pdf.numPages) * 100));
     }
     return t;
 }
@@ -107,36 +117,27 @@ async function extractWord(file) {
     return r.value;
 }
 
-// 5. RENDU DU RÉSUMÉ ET DU QUIZ (SÉCURISÉ)
 function renderResults(data) {
-    const summaryDiv = document.getElementById('summary-result');
-    const quizDiv = document.getElementById('quiz-result');
-
-    // Affichage du résumé
-    summaryDiv.innerHTML = `
-        <div style="background: rgba(99, 102, 241, 0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #6366f1;">
-            <h3 style="color: #818cf8;">${data.titre || "Résumé du cours"}</h3>
-            <p style="margin: 10px 0;">${data.intro || ""}</p>
-            <ul style="padding-left: 20px;">
-                ${(data.points || []).map(p => `<li style="margin-bottom: 5px;">${p}</li>`).join('')}
-            </ul>
-        </div>
-    `;
-
-    // Affichage du quiz
-    let qHtml = "<h2 style='margin-top:20px;'>📝 Auto-Évaluation</h2>";
-    (data.quiz || []).forEach((q, i) => {
-        qHtml += `
-            <div class="quiz-card" style="background: #1e293b; padding: 15px; border-radius: 10px; margin-top: 15px;">
-                <p><strong>${i+1}. ${q.q}</strong></p>
-                <div style="color: #4ade80; margin-top: 5px;">✅ ${q.correct}</div>
-                ${(q.wrong || []).map(w => `<div style="color: #94a3b8; font-size: 0.9em;">❌ ${w}</div>`).join('')}
-            </div>
-        `;
+    document.getElementById('summary-result').innerHTML = `
+        <div style="background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155;">
+            <h2 style="color: #6366f1;">🎓 ${data.titre}</h2>
+            <p style="margin: 15px 0; color: #cbd5e1;">${data.intro}</p>
+            <ul style="color: #94a3b8;">${data.points.map(p => `<li style="margin-bottom:8px">${p}</li>`).join('')}</ul>
+        </div>`;
+    
+    let qHtml = "<h2 style='margin: 20px 0;'>❓ Quiz Rapide</h2>";
+    data.quiz.forEach((q, i) => {
+        qHtml += `<div class="quiz-card" style="background:#0f172a; padding:15px; margin-bottom:10px; border-radius:8px;">
+            <p><strong>${i+1}. ${q.q}</strong></p>
+            <p style="color:#4ade80;">✅ ${q.correct}</p>
+        </div>`;
     });
-    quizDiv.innerHTML = qHtml;
+    document.getElementById('quiz-result').innerHTML = qHtml;
     document.getElementById('btn-result').classList.remove('hidden');
 }
 
 window.resetApiKey = () => { localStorage.removeItem('gemini_api_key'); location.reload(); };
-window.showResults = () => document.getElementById('results-container').classList.remove('hidden');
+window.showResults = () => {
+    document.getElementById('results-container').classList.remove('hidden');
+    window.scrollTo({ top: document.getElementById('results-container').offsetTop, behavior: 'smooth' });
+};
