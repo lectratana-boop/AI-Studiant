@@ -3,146 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expert Analyse 🎓</title>
+    <title>AI Studiant - Version Cloud</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --secondary: #4ade80;
-            --warning: #f59e0b;
-            --bg: #0f172a;
-            --card: #1e293b;
-            --text: #f1f5f9;
-        }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 450px; /* Optimisé pour téléphone */
-            background: var(--card);
-            padding: 20px;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        
-        /* Zone Upload */
-        .upload-zone {
-            border: 2px dashed #334155;
-            padding: 25px;
-            text-align: center;
-            border-radius: 15px;
-            margin-bottom: 20px;
-        }
-        .btn-upload {
-            background: var(--primary);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: bold;
-            display: inline-block;
-        }
-        input[type="file"] { display: none; }
-
-        /* Progress Bars */
-        .progress-container { margin: 15px 0; }
-        .progress-label { display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 5px; }
-        .progress-bg { background: #334155; height: 10px; border-radius: 5px; overflow: hidden; }
-        .progress-fill { width: 0%; height: 100%; transition: width 0.3s; }
-        #upload-fill { background: var(--primary); }
-        #ia-fill { background: var(--warning); }
-
-        /* Boutons */
-        .btn-main {
-            width: 100%;
-            padding: 16px;
-            border: none;
-            border-radius: 14px;
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .btn-analyze { background: #334155; opacity: 0.6; }
-        .btn-success { background: var(--secondary); margin-top: 10px; }
-
-        /* Onglets (Tabs) */
-        .tab-system { display: flex; gap: 8px; margin: 20px 0; }
-        .tab-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 10px;
-            background: #334155;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .tab-btn.active { background: var(--primary); }
-
-        .hidden { display: none !important; }
-        
-        /* Style des résultats IA */
-        .section-title { color: var(--secondary); margin-top: 15px; display: block; font-weight: bold; font-size: 1.1em; }
-        .quiz-card { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid var(--warning); }
-    </style>
 </head>
 <body>
+    <div class="phone-container">
+        <div class="phone-screen">
+            <header>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>Expert Analyse 🎓</h2>
+                    <button onclick="resetApiKey()" class="btn-icon"><i class="fas fa-key"></i></button>
+                </div>
+                <div id="status-ia" class="status-badge">Moteur Cloud Prêt</div>
+            </header>
 
-<div class="container">
-    <div class="header">
-        <h2>Expert Analyse 🎓</h2>
-        <button onclick="resetApiKey()" style="background:none; border:none; cursor:pointer;">🔑</button>
-    </div>
+            <div class="upload-section">
+                <label for="file-upload" class="custom-file-upload">
+                    <i class="fas fa-cloud-upload-alt"></i> Charger PDF ou Word
+                </label>
+                <input id="file-upload" type="file" accept=".pdf,.docx" onchange="handleFileUpload(event)"/>
+                
+                <div id="upload-status-container" class="hidden">
+                    <div class="status-info">
+                        <span id="file-info">Traitement...</span>
+                        <span id="upload-perc">0%</span>
+                    </div>
+                    <div class="progress-bar"><div id="upload-fill"></div></div>
+                </div>
 
-    <div class="upload-zone">
-        <label for="fileInput" class="btn-upload">☁️ Charger PDF ou Word</label>
-        <input type="file" id="fileInput" accept=".pdf,.docx" onchange="handleFileUpload(event)">
-        <p id="file-name-display" style="margin-top:10px; font-size:0.8em; color:#94a3b8;">En attente du cours...</p>
-    </div>
+                <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">En attente du fichier...</button>
+                
+                <div id="ia-detail-container" class="hidden">
+                    <div class="status-info">
+                        <span>Analyse Gemini en cours...</span>
+                        <span id="ia-perc">0%</span>
+                    </div>
+                    <div class="progress-bar"><div id="ia-fill" class="orange"></div></div>
+                </div>
 
-    <div id="upload-status-container" class="progress-container hidden">
-        <div class="progress-label"><span>Traitement...</span> <span id="upload-perc">0%</span></div>
-        <div class="progress-bg"><div id="upload-fill" class="progress-fill"></div></div>
-    </div>
+                <button id="btn-result" onclick="showResults()" class="hidden btn-green">✅ Voir Résumé & Quiz</button>
+            </div>
 
-    <button id="btn-ai" class="btn-main btn-analyze" onclick="processCourse()" disabled>🚀 ANALYSER LE COURS</button>
-
-    <div id="ia-detail-container" class="progress-container hidden">
-        <div class="progress-label"><span>Analyse Gemini...</span> <span id="ia-perc">0%</span></div>
-        <div class="progress-bg"><div id="ia-fill" class="progress-fill"></div></div>
-        <p id="timer-text" style="text-align: center; font-size: 0.85em; color: var(--warning); margin-top: 8px; font-weight: 500;"></p>
-    </div>
-
-    <button id="btn-result" class="btn-main btn-success hidden" onclick="showResults()">✅ Voir Résumé & Quiz</button>
-
-    <div id="results-container" class="hidden">
-        <div class="tab-system">
-            <button id="tab-sum" class="tab-btn active" onclick="switchTab('sum')">📖 Résumé</button>
-            <button id="tab-quiz" class="tab-btn" onclick="switchTab('quiz')">❓ Quiz</button>
+            <div id="results-container" class="hidden">
+                <div id="summary-result"></div>
+                <div id="quiz-result"></div>
+            </div>
         </div>
-
-        <div id="summary-content">
-            <div id="summary-result"></div>
-        </div>
-        
-        <div id="quiz-content" class="hidden">
-            <div id="quiz-result"></div>
-        </div>
     </div>
-</div>
-
-<script src="script.js"></script>
-
+    <script src="script.js"></script>
 </body>
 </html>
