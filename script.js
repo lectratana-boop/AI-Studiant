@@ -1,147 +1,210 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expert Analyse 🎓</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --bg: #0f172a;
-            --card: #1e293b;
-            --text: #f1f5f9;
-        }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            padding: 20px;
-            margin: 0;
-        }
-        .container {
-            width: 100%;
-            max-width: 500px;
-            background: var(--card);
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-key { background: none; border: none; cursor: pointer; font-size: 20px; }
+// ==========================================
+// 1. CONFIGURATION (Votre version fonctionnelle)
+// ==========================================
+let GEMINI_API_KEY = localStorage.getItem('gemini_api_key');
+
+// URL vérifiée fonctionnelle pour votre clé du 18 Mars
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+let extractedText = "";
+
+// Utilitaires d'affichage
+function updateBar(id, percId, value) {
+    const bar = document.getElementById(id);
+    const text = document.getElementById(percId);
+    if (bar) bar.style.width = value + "%";
+    if (text) text.innerText = value + "%";
+}
+
+function showLoading(show) {
+    const loader = document.getElementById('ai-loading-fancy');
+    if (loader) {
+        if (show) loader.classList.remove('hidden');
+        else loader.classList.add('hidden');
+    }
+}
+
+// ==========================================
+// 2. GESTION DU FICHIER (PDF/WORD)
+// ==========================================
+window.handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Réinitialisation visuelle
+    document.getElementById('upload-status-container').classList.remove('hidden');
+    document.getElementById('ia-detail-container').classList.add('hidden');
+    document.getElementById('results-container').classList.add('hidden');
+    document.getElementById('btn-result').classList.add('hidden');
+    updateBar('upload-fill', 'upload-perc', 0);
+    updateBar('ia-fill', 'ia-perc', 0);
+
+    try {
+        updateBar('upload-fill', 'upload-perc', 20);
         
-        .upload-zone {
-            border: 2px dashed #334155;
-            padding: 30px;
-            text-align: center;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            transition: 0.3s;
+        if (file.name.endsWith('.pdf')) {
+            extractedText = await extractPDF(file);
+        } else if (file.name.endsWith('.docx')) {
+            extractedText = await extractWord(file);
+        } else {
+            alert("Format non supporté (utilisez PDF ou DOCX)");
+            return;
         }
-        .btn-upload {
-            background: var(--primary);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            display: inline-block;
-            font-weight: bold;
-        }
-        input[type="file"] { display: none; }
 
-        /* Progress Bars */
-        .progress-container { margin: 15px 0; }
-        .progress-label { display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 5px; color: #94a3b8; }
-        .progress-bg { background: #334155; height: 8px; border-radius: 4px; overflow: hidden; }
-        .progress-fill { background: var(--primary); width: 0%; height: 100%; transition: width 0.4s; }
-        #ia-fill { background: #f59e0b; } /* Orange pour l'IA */
-
-        .btn-main {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .btn-analyze { background: #475569; opacity: 0.6; }
-        .btn-success { background: #10b981; margin-top: 15px; }
-        .hidden { display: none !important; }
-
-        /* Animation Loading */
-        .spinner {
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px auto;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        #results-container { margin-top: 30px; border-top: 1px solid #334155; padding-top: 20px; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="header">
-        <h2>Expert Analyse 🎓</h2>
-        <button class="btn-key" onclick="resetApiKey()">🔑</button>
-    </div>
-
-    <div class="upload-zone">
-        <label for="fileInput" class="btn-upload">☁️ Charger PDF ou Word</label>
-        <input type="file" id="fileInput" accept=".pdf,.docx">
-        <p id="file-name-display" style="margin-top:10px; font-size:0.9em; color:#94a3b8;">En attente du fichier...</p>
-    </div>
-
-    <div id="upload-status-container" class="progress-container hidden">
-        <div class="progress-label">
-            <span>Traitement du document...</span>
-            <span id="upload-perc">0%</span>
-        </div>
-        <div class="progress-bg">
-            <div id="upload-fill" class="progress-fill"></div>
-        </div>
-    </div>
-
-    <button id="btn-ai" class="btn-main btn-analyze" onclick="processCourse()" disabled>
-        Analyse indisponible
-    </button>
-
-    <div id="ia-detail-container" class="progress-container hidden">
-        <div class="progress-label">
-            <span>Analyse Gemini 2.5 en cours...</span>
-            <span id="ia-perc">0%</span>
-        </div>
-        <div class="progress-bg">
-            <div id="ia-fill" class="progress-fill"></div>
-        </div>
+        updateBar('upload-fill', 'upload-perc', 100);
         
-        <div id="ai-loading-fancy" class="hidden" style="text-align: center; margin-top: 15px;">
-            <div class="spinner"></div>
-            <p style="color: #94a3b8; font-size: 0.9em;">L'IA réfléchit et génère votre quiz... ⏳</p>
+        // Active le bouton d'analyse
+        const btnAi = document.getElementById('btn-ai');
+        btnAi.disabled = false;
+        btnAi.style.opacity = "1";
+        btnAi.style.cursor = "pointer";
+        btnAi.innerText = "🚀 ANALYSER LE COURS";
+
+    } catch (err) {
+        console.error(err);
+        alert("Erreur lors de la lecture du fichier.");
+    }
+};
+
+// ==========================================
+// 3. ANALYSE PAR L'IA (Moteur Gemini 2.5)
+// ==========================================
+window.processCourse = async () => {
+    if (!extractedText) return;
+
+    // Affichage zone IA et Masquage bouton analyse
+    document.getElementById('ia-detail-container').classList.remove('hidden');
+    document.getElementById('btn-ai').classList.add('hidden');
+    
+    // 🔥 AJOUT : Affiche le chargement animé "Fancy"
+    showLoading(true);
+    updateBar('ia-fill', 'ia-perc', 10); // Début de l'envoi
+
+    // Prompt optimisé pour garantir le format JSON
+    const promptText = `Agis en tant qu'expert pédagogique. Analyse le texte suivant pour générer un résumé structuré et un quiz de 5 questions.
+    Tu dois impérativement répondre au format JSON pur, sans texte avant ou après, en respectant cette structure :
+    {"titre":"...", "intro":"...", "points":["..."], "quiz":[{"q":"...", "correct":"...", "wrong":["..."]}]}
+    
+    Contenu du cours : ${extractedText.substring(0, 20000)}`; // Limite à 20k caractères pour la stabilité
+
+    try {
+        const response = await fetch(GEMINI_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: promptText }] }]
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.error) throw new Error(data.error.message);
+
+        // Récupération du texte brut
+        const rawText = data.candidates[0].content.parts[0].text;
+        
+        // 🔥 NETTOYAGE SÉCURISÉ DU JSON (Pour éviter le plantage au clic)
+        // L'IA ajoute souvent des blocs de code ```json ... ```, on les retire.
+        const start = rawText.indexOf('{');
+        const end = rawText.lastIndexOf('}') + 1;
+        if (start === -1 || end === 0) throw new Error("Format de réponse IA invalide (pas de JSON trouvé).");
+        
+        const cleanJsonString = rawText.substring(start, end);
+        const finalData = JSON.parse(cleanJsonString);
+
+        // ✅ SUCCÈS : Mise à jour des barres et affichage du bouton vert
+        updateBar('ia-fill', 'ia-perc', 100);
+        showLoading(false); // Cache le chargement
+
+        // Pré-remplit les résultats en mémoire
+        renderResults(finalData);
+
+        // Affiche le bouton vert "Voir Résumé"
+        document.getElementById('btn-result').classList.remove('hidden');
+
+    } catch (err) {
+        showLoading(false);
+        console.error("Erreur IA:", err);
+        alert("⚠️ L'analyse a échoué. Gemini a peut-être refusé le contenu ou le format est incorrect. Réessayez.");
+        document.getElementById('btn-ai').classList.remove('hidden');
+        document.getElementById('ia-detail-container').classList.add('hidden');
+    }
+};
+
+// ==========================================
+// 4. MOTEURS TECHNIQUES (PDF/Word)
+// ==========================================
+async function extractPDF(file) {
+    // Configuration Worker PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = "";
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map(item => item.str).join(" ") + " ";
+        // Mise à jour progressive barre upload (optionnel)
+        updateBar('upload-fill', 'upload-perc', Math.round((i / pdf.numPages) * 100));
+    }
+    return text;
+}
+
+async function extractWord(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    // Utilisation de Mammoth.js
+    const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+    return result.value;
+}
+
+// ==========================================
+// 5. AFFICHAGE DES RÉSULTATS (Génère le HTML)
+// ==========================================
+function renderResults(data) {
+    const summaryDiv = document.getElementById('summary-result');
+    const quizDiv = document.getElementById('quiz-result');
+
+    // ✅ Génération du Résumé
+    summaryDiv.innerHTML = `
+        <div class="summary-card" style="background: rgba(99, 102, 241, 0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #6366f1;">
+            <h2 style="color: #818cf8; margin-bottom: 10px;">📚 ${data.titre || 'Résumé du Cours'}</h2>
+            <p style="font-style: italic; color: #cbd5e1; margin-bottom: 15px;">${data.intro || ''}</p>
+            <ul style="color: #94a3b8; padding-left: 20px;">
+                ${(data.points || []).map(point => `<li style="margin-bottom: 8px;">${point}</li>`).join('')}
+            </ul>
         </div>
-    </div>
+    `;
 
-    <button id="btn-result" class="btn-main btn-success hidden" onclick="showResults()">
-        ✅ Voir Résumé & Quiz
-    </button>
+    // ✅ Génération du Quiz
+    let quizHtml = "<h2 style='margin: 25px 0 15px 0; color: #e2e8f0;'>❓ Quiz d'Auto-Évaluation</h2>";
+    (data.quiz || []).forEach((q, index) => {
+        quizHtml += `
+            <div class="quiz-item" style="background: #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #334155;">
+                <p style="color: #f1f5f9; font-weight: bold; margin-bottom: 10px;">${index + 1}. ${q.q}</p>
+                <div class="option correct" style="color: #4ade80; background: rgba(74, 222, 128, 0.1); padding: 8px; border-radius: 6px; margin-bottom: 5px;">✅ ${q.correct}</div>
+                ${(q.wrong || []).map(w => `<div class="option wrong" style="color: #94a3b8; padding: 5px 8px;">❌ ${w}</div>`).join('')}
+            </div>
+        `;
+    });
+    quizDiv.innerHTML = quizHtml;
+}
 
-    <div id="results-container" class="hidden">
-        <div id="summary-result"></div>
-        <div id="quiz-result"></div>
-    </div>
-</div>
+// ==========================================
+// 6. ACTIONS UTILISATEUR FINALES
+// ==========================================
+window.showResults = () => {
+    // Affiche la zone de résultats
+    const resultsContainer = document.getElementById('results-container');
+    resultsContainer.classList.remove('hidden');
+    
+    // Scroll fluide vers les résultats
+    resultsContainer.scrollIntoView({ behavior: 'smooth' });
+};
 
-<script src="script.js"></script>
-</body>
-</html>
+window.resetApiKey = () => {
+    localStorage.removeItem('gemini_api_key');
+    alert("Clé API effacée. La page va recharger.");
+    location.reload();
+};
