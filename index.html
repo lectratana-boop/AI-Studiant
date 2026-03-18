@@ -23,7 +23,7 @@
 
             <div style="background: #1e293b; padding: 15px; border-radius: 15px; margin-bottom: 15px;">
                 <label style="font-size: 0.8em; color: #94a3b8;">Matière :</label>
-                <select id="current-subject" onchange="renderHistory()" style="width: 100%; padding: 12px; margin-top:5px; border-radius: 8px; background: #0f172a; color: white; border: 1px solid #334155; font-size: 1em;">
+                <select id="current-subject" onchange="renderHistory()" style="width: 100%; padding: 12px; margin-top:5px; border-radius: 8px; background: #0f172a; color: white; border: 1px solid #334155;">
                     <option value="Mathématiques">📐 Mathématiques</option>
                     <option value="Physique-Chimie">🧪 Physique-Chimie</option>
                     <option value="Malagasy">🇲🇬 Malagasy</option>
@@ -32,14 +32,13 @@
 
                 <div id="course-history" style="margin-top: 15px;">
                     <p style="font-size: 0.8em; color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 5px;">Cours enregistrés :</p>
-                    <div id="history-list" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                        </div>
+                    <div id="history-list" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
                 </div>
             </div>
 
             <div class="upload-section">
                 <label for="file-upload" class="custom-file-upload">
-                    <i class="fas fa-plus-circle"></i> <span id="label-text">Ajouter un nouveau cours</span>
+                    <i class="fas fa-plus-circle"></i> <span id="label-text">Ajouter un cours</span>
                 </label>
                 <p style="font-size: 0.7em; color: #94a3b8; text-align: center; margin: 5px 0;">PDF, Word, TXT (Max 50 Mo)</p>
                 <input id="file-upload" type="file" accept=".pdf,.docx,.txt" onchange="handleFileUpload(event)"/>
@@ -49,19 +48,18 @@
                     <div class="progress-bar"><div id="upload-fill"></div></div>
                 </div>
 
-                <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">Sélectionner un fichier</button>
+                <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">Choisir un fichier</button>
                 
                 <div id="ia-detail-container" class="hidden">
                     <div class="status-info"><span>Analyse Gemini...</span><span id="ia-perc">0%</span></div>
                     <div class="progress-bar"><div id="ia-fill" class="orange"></div></div>
-                    <p id="timer-text" style="text-align: center; font-size: 0.8em; color: #f59e0b; margin-top: 5px;"></p>
                 </div>
             </div>
 
             <div id="results-container" class="hidden" style="margin-top: 20px;">
                 <div style="display: flex; gap: 5px; margin-bottom: 15px;">
-                    <button id="tab-sum" onclick="switchTab('sum')" style="flex:1; padding: 12px; border-radius: 10px; border:none; background:#6366f1; color:white; font-weight:bold;">📖 Résumé</button>
-                    <button id="tab-quiz" onclick="switchTab('quiz')" style="flex:1; padding: 12px; border-radius: 10px; border:none; background:#334155; color:white; font-weight:bold;">❓ Quiz</button>
+                    <button id="tab-sum" onclick="switchTab('sum')" style="flex:1; padding: 12px; border-radius: 10px; border:none; background:#6366f1; color:white; font-weight:bold;">Résumé</button>
+                    <button id="tab-quiz" onclick="switchTab('quiz')" style="flex:1; padding: 12px; border-radius: 10px; border:none; background:#334155; color:white; font-weight:bold;">Quiz</button>
                 </div>
                 <div id="summary-content"><div id="summary-result"></div></div>
                 <div id="quiz-content" class="hidden"><div id="quiz-result"></div></div>
