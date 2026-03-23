@@ -1,65 +1,63 @@
-:root {
-    --neon-blue: #00f3ff;
-    --neon-pink: #ff007f;
-    --glass: rgba(255, 255, 255, 0.15);
-}
-
 body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Arial', sans-serif;
-    background: #0b0e14 url('lemurien.jpg') no-repeat center center fixed;
-    background-size: cover;
-    color: white;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
+  font-family: Arial;
+  background: #f5f5f5;
+  text-align: center;
 }
 
-#app { width: 100%; max-width: 450px; position: relative; }
-
-.screen { display: none; height: 100vh; flex-direction: column; }
-.screen.active { display: flex; }
-
-.glass-card {
-    background: var(--glass);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 15px;
-    padding: 20px;
-    margin: 10px;
+.center {
+  margin-top: 100px;
 }
 
-/* Boutons de couleur */
-.btn-primary { background: var(--neon-blue); border: none; padding: 12px; border-radius: 8px; cursor: pointer; }
-.btn-blue { background: #0084ff; border: none; color: white; padding: 10px; width: 100%; margin: 5px 0; border-radius: 5px;}
-.btn-yellow { background: #ffcc00; border: none; padding: 10px; width: 100%; margin: 5px 0; border-radius: 5px;}
-.btn-red { background: #ff3b30; border: none; color: white; padding: 10px; width: 100%; border-radius: 5px;}
-.btn-green { background: #28cd41; border: none; color: white; padding: 10px; border-radius: 5px;}
-
-/* Navigation */
-.bottom-nav {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    max-width: 450px;
-    background: rgba(0,0,0,0.85);
-    display: flex;
-    justify-content: space-around;
-    padding: 15px 0;
-    border-top: 1px solid var(--neon-blue);
+.hidden {
+  display: none;
 }
 
-.bottom-nav button { background: none; border: none; color: white; font-size: 12px; cursor: pointer; }
+button {
+  padding: 10px;
+  margin: 10px;
+  cursor: pointer;
+}
 
-/* Progress Bars */
-.progress { background: #333; height: 20px; border-radius: 10px; margin: 10px 0; position: relative; overflow: hidden; display: none;}
-.bar { background: var(--neon-blue); height: 100%; width: 0%; transition: 0.3s; }
-.progress span { position: absolute; width: 100%; text-align: center; top: 0; font-size: 12px; }
+.gold {
+  background: gold;
+}
 
-.hidden { display: none !important; }
-.active { display: block; }
+nav {
+  background: #333;
+  padding: 10px;
+}
 
-/* Quiz Styles */
-.correct-answer { color: #ff007f; font-weight: bold; } /* Rose vif */
-.question-title { color: var(--neon-blue); margin-top: 15px; display: block; }
+nav button {
+  color: white;
+  background: none;
+  border: none;
+}
+
+.tab {
+  padding: 20px;
+}
+
+.subject {
+  border: 1px solid black;
+  margin: 10px;
+  padding: 10px;
+}
+
+.upload {
+  background: blue;
+  color: white;
+}
+
+.analyse {
+  background: red;
+  color: white;
+}
+
+.done {
+  background: green;
+  color: white;
+}
+
+.correct {
+  color: pink;
+}
