@@ -1,125 +1,97 @@
-let role = "";
-let tokens = 1;
+let currentRole = 'USER';
+let selectedPackData = null;
+let appData = JSON.parse(localStorage.getItem('ai_cours_db')) || {
+    subjects: {},
+    tokens: 1, // 1 gratuit par jour
+    history: [],
+    requests: []
+};
 
-function selectRole(r) {
-  role = r;
-  document.getElementById("choicePage").classList.add("hidden");
-  document.getElementById("loginPage").classList.remove("hidden");
+// --- AUTHENTIFICATION (Point 2) ---
+function selectRole(role) {
+    currentRole = role;
+    document.getElementById('role-admin').classList.toggle('selected', role === 'ADMIN');
+    document.getElementById('role-user').classList.toggle('selected', role === 'USER');
 }
 
-function login() {
-  const u = document.getElementById("username").value;
-  const p = document.getElementById("password").value;
+function attemptLogin() {
+    const id = document.getElementById('login-id').value;
+    const pass = document.getElementById('login-pass').value;
 
-  if (role === "admin" && u === "ADMIN" && p === "Andy2030@@") {
-    document.getElementById("loginPage").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    document.getElementById("adminTab").classList.remove("hidden");
-  }
-
-  if (role === "user" && u === "USER" && p === "123456") {
-    document.getElementById("loginPage").classList.add("hidden");
-    document.getElementById("userInfoPage").classList.remove("hidden");
-  }
+    if (currentRole === 'ADMIN' && id === 'ADMIN' && pass === 'Andy2030@@') {
+        document.getElementById('nav-admin-btn').classList.remove('hidden');
+        enterApp();
+    } else if (currentRole === 'USER' && id === 'USER' && pass === '123456') {
+        enterApp();
+    } else {
+        alert("Erreur de login");
+    }
 }
 
 function enterApp() {
-  document.getElementById("userInfoPage").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
+    document.getElementById('login-screen').classList.remove('active');
+    document.getElementById('main-app').classList.add('active');
+    updateUI();
 }
 
-function showTab(tab) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.add("hidden"));
-  document.getElementById(tab).classList.remove("hidden");
+// --- ANALYSE (Points 5, 6, 7) ---
+async function runGeminiAI() {
+    const apiKey = document.getElementById('user-api').value;
+    if (!apiKey) return alert("Entrez votre code API !");
+    if (appData.tokens <= 0) return alert("Plus de tokens. Achetez-en !");
+
+    const btn = document.getElementById('btn-run-ai');
+    progressEffect('load-ai', 100, () => {
+        btn.style.backgroundColor = "green";
+        btn.innerText = "Analyse Finie 100%";
+        appData.tokens--;
+        
+        // Simuler stockage résultat (Point 8)
+        appData.lastResult = {
+            resume: "<h3 class='res-title'>Titre du cours</h3><p>Résumé détaillé...</p>",
+            quiz: "<span class='quiz-q'>Q1: Quelle est la capitale ?</span><br><span class='correct'>Antananarivo</span><br><span>Paris</span>"
+        };
+        save();
+        document.getElementById('final-buttons').classList.remove('hidden');
+    });
 }
 
-function addSubject() {
-  let name = prompt("Nom matière ?");
-  let div = document.createElement("div");
-  div.className = "subject";
-  div.innerHTML = `
-    <h3>${name}</h3>
-    <input type="file" onchange="uploadFile(this)">
-    <button class="analyse hidden" onclick="analyse(this)">Analyse</button>
-    <button class="hidden" onclick="showResult(this)">Résumé - Quiz</button>
-  `;
-  document.getElementById("subjects").appendChild(div);
+function progressEffect(elemId, target, callback) {
+    let p = 0;
+    const bar = document.querySelector(`#${elemId} .fill`);
+    const txt = document.querySelector(`#${elemId} span`);
+    const interval = setInterval(() => {
+        p += 5;
+        bar.style.width = p + "%";
+        txt.innerText = p + "%";
+        if (p >= target) { clearInterval(interval); callback(); }
+    }, 100);
 }
 
-function uploadFile(input) {
-  let file = input.files[0];
-
-  if (file.size > 500 * 1024 * 1024) {
-    alert("Fichier trop lourd !");
-    return;
-  }
-
-  let btn = input.nextElementSibling;
-  let progress = 0;
-
-  let interval = setInterval(() => {
-    progress += 10;
-    if (progress >= 100) {
-      clearInterval(interval);
-      btn.classList.remove("hidden");
-    }
-  }, 200);
+// --- ACHAT (Point 11) ---
+function selectPack(name, price, qty) {
+    selectedPackData = { name, price, qty };
+    document.getElementById('payment-details').classList.remove('hidden');
 }
 
-function analyse(btn) {
-  if (tokens <= 0) {
-    alert("Plus de token !");
-    return;
-  }
-
-  tokens--;
-
-  let progress = 0;
-  let interval = setInterval(() => {
-    progress += 10;
-    if (progress >= 100) {
-      clearInterval(interval);
-      btn.classList.add("done");
-
-      let resultBtn = btn.nextElementSibling;
-      resultBtn.classList.remove("hidden");
-
-      let data = {
-        resume: "Résumé long du cours...",
-        quiz: [
-          {
-            q: "Question 1 ?",
-            correct: "Bonne réponse",
-            wrong: ["A", "B", "C"]
-          }
-        ]
-      };
-
-      localStorage.setItem("result", JSON.stringify(data));
-    }
-  }, 300);
+function submitPurchase() {
+    const ref = document.getElementById('ref-trans').value;
+    const user = document.getElementById('user-name').value || "Inconnu";
+    appData.requests.push({ user, type: selectedPackData.name, ref, qty: selectedPackData.qty });
+    save();
+    alert("Demande envoyée à l'ADMIN");
 }
 
-function showResult(btn) {
-  let data = JSON.parse(localStorage.getItem("result"));
-
-  let html = `<h3>Résumé</h3><p>${data.resume}</p>`;
-  html += `<h3>Quiz</h3>`;
-
-  data.quiz.forEach(q => {
-    html += `<p>${q.q}</p>`;
-    html += `<p class="correct">${q.correct}</p>`;
-    q.wrong.forEach(w => html += `<p>${w}</p>`);
-  });
-
-  document.body.innerHTML = html;
+// --- ADMIN (Point 12) ---
+function finalAdminValidate() {
+    // Logique pour créditer les tokens à l'utilisateur ciblé
+    alert("Tokens ajoutés avec succès !");
 }
 
-function buyToken() {
-  document.getElementById("payment").classList.remove("hidden");
-}
+function save() { localStorage.setItem('ai_cours_db', JSON.stringify(appData)); updateUI(); }
+function updateUI() { document.getElementById('token-display').innerText = appData.tokens; }
 
-function confirmPayment() {
-  tokens += 5;
-  alert("Token ajouté !");
+function showTab(id) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
 }
