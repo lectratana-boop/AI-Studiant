@@ -1,78 +1,43 @@
-let role = "";
-let tokens = 1;
+// 🔑 METS TA CLE GEMINI ICI
+const API_KEY = "COLLE_TA_CLE_GEMINI_ICI";
 
-// ROLE
-function selectRole(r) {
-  role = r;
-  choicePage.classList.add("hidden");
-  loginPage.classList.remove("hidden");
-}
+let uploadedText = "";
 
-// LOGIN
-function login() {
-  if (role === "admin" && username.value === "ADMIN" && password.value === "Andy2030@@") {
-    startApp(true);
-  } else if (role === "user" && username.value === "USER" && password.value === "123456") {
-    loginPage.classList.add("hidden");
-    userSetup.classList.remove("hidden");
+// ================= FILE READER =================
+
+async function readFile(file) {
+  if (file.type === "application/pdf") {
+    return await readPDF(file);
+  } else if (file.name.endsWith(".docx")) {
+    return await readWord(file);
   } else {
-    alert("Erreur");
+    return await file.text();
   }
 }
 
-// SAVE USER
-function saveUser() {
-  localStorage.setItem("user", name.value);
-  userSetup.classList.add("hidden");
-  startApp(false);
+// PDF
+async function readPDF(file) {
+  const pdf = await pdfjsLib.getDocument(URL.createObjectURL(file)).promise;
+  let text = "";
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    let page = await pdf.getPage(i);
+    let content = await page.getTextContent();
+    content.items.forEach(item => text += item.str + " ");
+  }
+
+  return text;
 }
 
-// START
-function startApp(isAdmin) {
-  mainApp.classList.remove("hidden");
-  if (!isAdmin) adminBtn.style.display = "none";
-  else loadAdmin();
+// WORD
+async function readWord(file) {
+  let result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+  return result.value;
 }
 
-// TAB
-function showTab(tab) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.add("hidden"));
-  document.getElementById(tab).classList.remove("hidden");
-}
+// ================= UPLOAD =================
 
-// ADD SUBJECT
-function addSubject() {
-  let name = prompt("Nom matière ?");
-  let div = document.createElement("div");
-  div.className = "subject";
-
-  div.innerHTML = `
-    <h3>${name}</h3>
-
-    <button class="red" onclick="this.parentElement.remove()">Delete Matière</button>
-
-    <input type="file" onchange="uploadFile(event,this)">
-    <button class="yellow" onclick="deleteFile(this)">Delete Fichier</button>
-
-    <div class="progress"></div>
-    <div class="actions"></div>
-    <div class="resultBox"></div>
-  `;
-
-  subjects.appendChild(div);
-}
-
-// DELETE FILE
-function deleteFile(btn) {
-  let parent = btn.parentElement;
-  parent.querySelector("input").value = "";
-  parent.querySelector(".progress").innerHTML = "";
-  parent.querySelector(".actions").innerHTML = "";
-  parent.querySelector(".resultBox").innerHTML = "";
-}
-
-// UPLOAD
-function uploadFile(e, el) {
+async function uploadFile(e, el) {
   let file = e.target.files[0];
   if (!file) return;
 
@@ -82,116 +47,76 @@ function uploadFile(e, el) {
   }
 
   let progress = el.parentElement.querySelector(".progress");
-  let actions = el.parentElement.querySelector(".actions");
 
-  let p = 0;
-  let interval = setInterval(() => {
-    p += 10;
-    progress.innerText = p + "%";
+  progress.innerText = "Lecture fichier...";
 
-    if (p === 100) {
-      clearInterval(interval);
-      actions.innerHTML = `<button class="red" onclick="analyse(this)">Analyse</button>`;
-    }
-  }, 200);
+  uploadedText = await readFile(file);
+
+  progress.innerText = "Fichier prêt ✔";
+
+  el.parentElement.querySelector(".actions").innerHTML =
+    `<button class="red" onclick="analyse(this)">Analyse</button>`;
 }
 
-// ANALYSE
-function analyse(btn) {
-  if (tokens <= 0) {
-    alert("Acheter token !");
-    return;
+// ================= GEMINI =================
+
+async function callGemini(prompt) {
+  let res = await fetch(
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    }
+  );
+
+  let data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "Erreur IA";
+}
+
+// ================= ANALYSE =================
+
+async function analyse(btn) {
+  let box = btn.parentElement.parentElement.querySelector(".resultBox");
+
+  box.innerHTML = `<p class="loading">Analyse en cours...</p>`;
+
+  let resumePrompt = `
+  Résume ce cours de façon claire, structurée et éducative avec titres :
+  ${uploadedText}
+  `;
+
+  let quizPrompt = `
+  Crée un quiz de 10 questions avec 4 choix (1 correct, 3 faux) basé sur ce cours :
+  ${uploadedText}
+  `;
+
+  try {
+    let resume = await callGemini(resumePrompt);
+    let quiz = await callGemini(quizPrompt);
+
+    box.innerHTML = `
+      <button class="green" onclick="showResume()">Résumé</button>
+      <button class="green" onclick="showQuiz()">Quiz</button>
+
+      <div id="resumeContent" class="hidden">${resume}</div>
+      <div id="quizContent" class="hidden">${quiz}</div>
+    `;
+  } catch (e) {
+    box.innerHTML = "Erreur API Gemini";
   }
-
-  let parent = btn.parentElement.parentElement;
-  let box = parent.querySelector(".resultBox");
-
-  let p = 0;
-  let interval = setInterval(() => {
-    p += 20;
-    box.innerHTML = "Analyse: " + p + "%";
-
-    if (p === 100) {
-      clearInterval(interval);
-      tokens--;
-
-      box.innerHTML = `
-        <button class="green" onclick="showResume(this)">Résumé</button>
-        <button class="green" onclick="showQuiz(this)">Quiz</button>
-      `;
-    }
-  }, 300);
 }
 
-// RESUME
-function showResume(btn) {
-  let box = btn.parentElement;
+// ================= DISPLAY =================
 
-  box.innerHTML += `
-  <div class="resultBox">
-    <h3 style="color:blue">Résumé</h3>
-    <p><b style="color:purple">Chapitre 1:</b> Résumé long généré...</p>
-    <p><b style="color:green">Chapitre 2:</b> Suite du cours...</p>
-  </div>`;
+function showResume() {
+  let res = document.getElementById("resumeContent");
+  res.classList.toggle("hidden");
 }
 
-// QUIZ
-function showQuiz(btn) {
-  let box = btn.parentElement;
-
-  box.innerHTML += `
-  <div class="resultBox">
-    <h3 style="color:red">Quiz</h3>
-    <p>1. Question ?</p>
-    <p class="correct">✔ Bonne réponse</p>
-    <p class="wrong">✖ Mauvaise</p>
-    <p class="wrong">✖ Mauvaise</p>
-    <p class="wrong">✖ Mauvaise</p>
-  </div>`;
-}
-
-// TOKEN
-function selectToken() {
-  paymentBox.classList.remove("hidden");
-}
-
-function showRef() {
-  refBox.classList.remove("hidden");
-}
-
-function confirmPayment() {
-  let ref = refTrans.value;
-  let user = localStorage.getItem("user");
-
-  if (!ref) return alert("Entrer Ref");
-
-  let logs = JSON.parse(localStorage.getItem("logs") || "[]");
-
-  logs.push({ user, ref, type: "MORA", status: "pending" });
-
-  localStorage.setItem("logs", JSON.stringify(logs));
-
-  alert("Envoyé à ADMIN !");
-}
-
-// ADMIN
-function loadAdmin() {
-  let logs = JSON.parse(localStorage.getItem("logs") || "[]");
-
-  adminLogs.innerHTML = logs.map((l, i) => `
-    <div>
-      ${l.user} - ${l.type} - ${l.ref}
-      <button onclick="validateToken(${i})">Valider</button>
-    </div>
-  `).join("");
-}
-
-function validateToken(i) {
-  let logs = JSON.parse(localStorage.getItem("logs"));
-  logs[i].status = "done";
-  localStorage.setItem("logs", JSON.stringify(logs));
-
-  tokens += 5;
-  alert("Token ajouté !");
-  loadAdmin();
+function showQuiz() {
+  let quiz = document.getElementById("quizContent");
+  quiz.classList.toggle("hidden");
 }
