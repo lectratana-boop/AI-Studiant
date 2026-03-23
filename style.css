@@ -1,72 +1,18 @@
-body {
-  margin: 0;
-  font-family: Arial;
-  background: #f2f2f2;
+.loading {
+  color: blue;
+  font-weight: bold;
 }
 
-.app {
-  max-width: 400px;
-  margin: auto;
-  background: white;
-  min-height: 100vh;
-  padding: 15px;
-}
-
-h1, h2 {
-  text-align: center;
-}
-
-.hidden {
-  display: none;
-}
-
-button {
-  padding: 10px;
-  margin: 5px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-}
-
-nav {
-  display: flex;
-  justify-content: space-around;
-  background: #eee;
-  padding: 10px;
-  border-radius: 10px;
-}
-
-input {
-  width: 90%;
-  padding: 10px;
-  margin: 10px auto;
-  display: block;
-}
-
-.subject {
-  background: #fafafa;
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 10px;
-}
-
-.uploadBtn {
-  background: blue;
-  color: white;
-}
-
-.red { background: red; color: white; }
-.green { background: green; color: white; }
-.yellow { background: orange; color: white; }
-
-.progress {
-  margin-top: 5px;
-}
-
-.correct { color: green; }
-.wrong { color: red; }
-
-.resultBox {
-  text-align: left;
+.quiz-question {
+  color: #333;
   margin-top: 10px;
+}
+
+.correct {
+  color: green;
+  font-weight: bold;
+}
+
+.wrong {
+  color: red;
 }
