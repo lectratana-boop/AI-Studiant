@@ -1,65 +1,76 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Expert Analyse 🎓</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Apps AI Cours</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="phone-container">
-        <div class="phone-screen">
-            <header>
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <h2 style="margin:0;">Expert Analyse 🎓</h2>
-                    <button onclick="askNewKey()" style="background: #334155; border: none; color: white; padding: 10px; border-radius: 50%; width: 40px; height: 40px; cursor: pointer;">
-                        <i class="fas fa-key"></i>
-                    </button>
-                </div>
-                <div id="status-ia" class="status-badge">Moteur Cloud Prêt</div>
-            </header>
 
-            <div class="upload-section">
-                <label for="file-upload" class="custom-file-upload">
-                    <i class="fas fa-cloud-upload-alt"></i> <span id="label-text">Charger PDF ou Word</span>
-                </label>
-                <input id="file-upload" type="file" accept=".pdf,.docx" onchange="handleFileUpload(event)"/>
-                
-                <div id="upload-status-container" class="hidden">
-                    <div class="status-info">
-                        <span id="file-info">Traitement...</span>
-                        <span id="upload-perc">0%</span>
-                    </div>
-                    <div class="progress-bar"><div id="upload-fill"></div></div>
-                </div>
+<div id="app">
 
-                <button id="btn-ai" onclick="processCourse()" disabled class="btn-blue">En attente du fichier...</button>
-                
-                <div id="ia-detail-container" class="hidden">
-                    <div class="status-info">
-                        <span id="ia-status-label">Analyse Gemini...</span>
-                        <span id="ia-perc">0%</span>
-                    </div>
-                    <div class="progress-bar"><div id="ia-fill" class="orange"></div></div>
-                    <p id="timer-text" style="text-align: center; font-size: 0.8em; color: #f59e0b; margin-top: 5px;"></p>
-                </div>
+  <!-- PAGE CHOIX -->
+  <div id="choicePage">
+    <h1>Apps AI Cours</h1>
+    <button onclick="selectRole('admin')">ADMIN</button>
+    <button onclick="selectRole('user')">UTILISATEUR</button>
+  </div>
 
-                <button id="btn-result" onclick="showResults()" class="hidden btn-green">✅ Voir Résumé & Quiz</button>
-            </div>
+  <!-- LOGIN -->
+  <div id="loginPage" class="hidden">
+    <h2>Connexion</h2>
+    <input id="username" placeholder="User">
+    <input id="password" type="password" placeholder="Mot de passe">
+    <button onclick="login()">Login</button>
+  </div>
 
-            <div id="results-container" class="hidden">
-                <div style="display: flex; gap: 5px; margin-bottom: 15px;">
-                    <button id="tab-sum" onclick="switchTab('sum')" style="flex:1; padding: 10px; border-radius: 8px; border:none; background:#6366f1; color:white;">📖 Résumé</button>
-                    <button id="tab-quiz" onclick="switchTab('quiz')" style="flex:1; padding: 10px; border-radius: 8px; border:none; background:#334155; color:white;">❓ Quiz</button>
-                </div>
-                <div id="summary-content"><div id="summary-result"></div></div>
-                <div id="quiz-content" class="hidden"><div id="quiz-result"></div></div>
-            </div>
-        </div>
+  <!-- USER SETUP -->
+  <div id="userSetup" class="hidden">
+    <h2>Profil utilisateur</h2>
+    <input id="name" placeholder="Nom">
+    <input id="apiKey" placeholder="Code API">
+    <button onclick="saveUser()">Valider</button>
+  </div>
+
+  <!-- APP -->
+  <div id="mainApp" class="hidden">
+
+    <!-- MENU -->
+    <nav>
+      <button onclick="showTab('analyse')">Analyse</button>
+      <button onclick="showTab('token')">Acheter Token</button>
+      <button onclick="showTab('admin')" id="adminTabBtn">Admin</button>
+    </nav>
+
+    <!-- ANALYSE -->
+    <div id="analyse" class="tab">
+      <h2>Matières</h2>
+      <button onclick="addSubject()">Ajouter</button>
+      <div id="subjects"></div>
     </div>
-    <script src="script.js"></script>
+
+    <!-- TOKEN -->
+    <div id="token" class="tab hidden">
+      <h2>Acheter Token</h2>
+      <p>MORA - 2000Ar → 5 analyses</p>
+      <button onclick="buyToken()">Choisir</button>
+
+      <div id="paymentBox" class="hidden">
+        <p>Envoyer à ADMIN (MVola)</p>
+        <input id="refTrans" placeholder="Ref Trans">
+        <button onclick="confirmPayment()">Confirmer</button>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="admin" class="tab hidden">
+      <h2>Dashboard Admin</h2>
+      <div id="adminLogs"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
