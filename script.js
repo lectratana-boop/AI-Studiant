@@ -1,13 +1,6 @@
 let currentRole = 'USER';
-let selectedPackData = null;
-let appData = JSON.parse(localStorage.getItem('ai_cours_db')) || {
-    subjects: {},
-    tokens: 1, // 1 gratuit par jour
-    history: [],
-    requests: []
-};
+let db = JSON.parse(localStorage.getItem('ai_cours_data')) || { tokens: 1, subjects: [] };
 
-// --- AUTHENTIFICATION (Point 2) ---
 function selectRole(role) {
     currentRole = role;
     document.getElementById('role-admin').classList.toggle('selected', role === 'ADMIN');
@@ -15,83 +8,86 @@ function selectRole(role) {
 }
 
 function attemptLogin() {
-    const id = document.getElementById('login-id').value;
+    const user = document.getElementById('login-id').value;
     const pass = document.getElementById('login-pass').value;
 
-    if (currentRole === 'ADMIN' && id === 'ADMIN' && pass === 'Andy2030@@') {
-        document.getElementById('nav-admin-btn').classList.remove('hidden');
-        enterApp();
-    } else if (currentRole === 'USER' && id === 'USER' && pass === '123456') {
-        enterApp();
+    if (currentRole === 'ADMIN' && user === 'ADMIN' && pass === 'Andy2030@@') {
+        document.getElementById('admin-nav').classList.remove('hidden');
+        loginSuccess();
+    } else if (currentRole === 'USER' && user === 'USER' && pass === '123456') {
+        loginSuccess();
     } else {
-        alert("Erreur de login");
+        alert("Identifiants incorrects !");
     }
 }
 
-function enterApp() {
+function loginSuccess() {
     document.getElementById('login-screen').classList.remove('active');
     document.getElementById('main-app').classList.add('active');
-    updateUI();
 }
 
-// --- ANALYSE (Points 5, 6, 7) ---
-async function runGeminiAI() {
-    const apiKey = document.getElementById('user-api').value;
-    if (!apiKey) return alert("Entrez votre code API !");
-    if (appData.tokens <= 0) return alert("Plus de tokens. Achetez-en !");
-
-    const btn = document.getElementById('btn-run-ai');
-    progressEffect('load-ai', 100, () => {
-        btn.style.backgroundColor = "green";
-        btn.innerText = "Analyse Finie 100%";
-        appData.tokens--;
-        
-        // Simuler stockage résultat (Point 8)
-        appData.lastResult = {
-            resume: "<h3 class='res-title'>Titre du cours</h3><p>Résumé détaillé...</p>",
-            quiz: "<span class='quiz-q'>Q1: Quelle est la capitale ?</span><br><span class='correct'>Antananarivo</span><br><span>Paris</span>"
-        };
-        save();
-        document.getElementById('final-buttons').classList.remove('hidden');
-    });
+function showTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
 }
 
-function progressEffect(elemId, target, callback) {
+// Simulation Upload (Point 5)
+function handleFileUpload(input) {
+    const file = input.files[0];
+    if (file.size > 500 * 1024 * 1024) return alert("Fichier trop gros !");
+
+    const upProgress = document.getElementById('up-progress');
+    const bar = upProgress.querySelector('.progress-bar');
+    const span = upProgress.querySelector('span');
+    
+    upProgress.classList.remove('hidden');
     let p = 0;
-    const bar = document.querySelector(`#${elemId} .fill`);
-    const txt = document.querySelector(`#${elemId} span`);
-    const interval = setInterval(() => {
+    let inv = setInterval(() => {
+        p += 10;
+        bar.style.width = p + "%";
+        span.innerText = p + "%";
+        if (p >= 100) {
+            clearInterval(inv);
+            const btn = document.getElementById('btn-upload');
+            btn.classList.add('btn-yellow');
+            btn.innerText = "Upload Fini 100%";
+            document.getElementById('btn-analyze').classList.remove('hidden');
+        }
+    }, 200);
+}
+
+// Analyse Gemini (Point 6-7)
+function startAnalysis() {
+    const aiProgress = document.getElementById('ai-progress');
+    const bar = aiProgress.querySelector('.ai-bar');
+    const span = aiProgress.querySelector('span');
+    
+    aiProgress.classList.remove('hidden');
+    let p = 0;
+    let inv = setInterval(() => {
         p += 5;
         bar.style.width = p + "%";
-        txt.innerText = p + "%";
-        if (p >= target) { clearInterval(interval); callback(); }
-    }, 100);
+        span.innerText = p + "%";
+        if (p >= 100) {
+            clearInterval(inv);
+            document.getElementById('btn-analyze').style.background = "#28a745";
+            document.getElementById('btn-analyze').innerText = "Analyse Finie 100%";
+            document.getElementById('final-results-nav').classList.remove('hidden');
+            saveResult();
+        }
+    }, 150);
 }
 
-// --- ACHAT (Point 11) ---
-function selectPack(name, price, qty) {
-    selectedPackData = { name, price, qty };
-    document.getElementById('payment-details').classList.remove('hidden');
+function saveResult() {
+    db.lastResult = {
+        resume: "<h2>Titre du cours</h2><p>Ceci est un résumé long du cours...</p>",
+        quiz: "<span class='quiz-question'>Question 1: Quelle est la couleur du ciel ?</span><br><span class='correct-ans'>1. Bleu</span><br><span>2. Vert</span>"
+    };
+    localStorage.setItem('ai_cours_data', JSON.stringify(db));
 }
 
-function submitPurchase() {
-    const ref = document.getElementById('ref-trans').value;
-    const user = document.getElementById('user-name').value || "Inconnu";
-    appData.requests.push({ user, type: selectedPackData.name, ref, qty: selectedPackData.qty });
-    save();
-    alert("Demande envoyée à l'ADMIN");
-}
-
-// --- ADMIN (Point 12) ---
-function finalAdminValidate() {
-    // Logique pour créditer les tokens à l'utilisateur ciblé
-    alert("Tokens ajoutés avec succès !");
-}
-
-function save() { localStorage.setItem('ai_cours_db', JSON.stringify(appData)); updateUI(); }
-function updateUI() { document.getElementById('token-display').innerText = appData.tokens; }
-
-function showTab(id) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.getElementById('tab-' + id).classList.add('active');
+function showContent(type) {
+    const win = document.getElementById('display-window');
+    win.classList.remove('hidden');
+    win.innerHTML = type === 'resume' ? db.lastResult.resume : db.lastResult.quiz;
 }
