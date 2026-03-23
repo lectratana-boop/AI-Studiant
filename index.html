@@ -1,74 +1,83 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Apps AI Cours</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Apps AI Cours</title>
+<link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div id="app">
+<div class="app">
 
-  <!-- PAGE CHOIX -->
-  <div id="choicePage">
-    <h1>Apps AI Cours</h1>
-    <button onclick="selectRole('admin')">ADMIN</button>
-    <button onclick="selectRole('user')">UTILISATEUR</button>
-  </div>
+<!-- CHOIX -->
+<div id="choicePage">
+  <h1>Apps AI Cours</h1>
+  <button onclick="selectRole('admin')">ADMIN</button>
+  <button onclick="selectRole('user')">UTILISATEUR</button>
+</div>
 
-  <!-- LOGIN -->
-  <div id="loginPage" class="hidden">
-    <h2>Connexion</h2>
-    <input id="username" placeholder="User">
-    <input id="password" type="password" placeholder="Mot de passe">
-    <button onclick="login()">Login</button>
-  </div>
+<!-- LOGIN -->
+<div id="loginPage" class="hidden">
+  <h2>Connexion</h2>
+  <input id="username" placeholder="User">
+  <input id="password" type="password" placeholder="Mot de passe">
+  <button onclick="login()">Login</button>
+</div>
 
-  <!-- USER SETUP -->
-  <div id="userSetup" class="hidden">
-    <h2>Profil utilisateur</h2>
-    <input id="name" placeholder="Nom">
-    <input id="apiKey" placeholder="Code API">
-    <button onclick="saveUser()">Valider</button>
-  </div>
+<!-- USER SETUP -->
+<div id="userSetup" class="hidden">
+  <h2>Profil</h2>
+  <input id="name" placeholder="Nom">
+  <input id="apiKey" placeholder="Code API">
+  <button onclick="saveUser()">Entrer</button>
+</div>
 
-  <!-- APP -->
-  <div id="mainApp" class="hidden">
+<!-- APP -->
+<div id="mainApp" class="hidden">
 
-    <!-- MENU -->
-    <nav>
-      <button onclick="showTab('analyse')">Analyse</button>
-      <button onclick="showTab('token')">Acheter Token</button>
-      <button onclick="showTab('admin')" id="adminTabBtn">Admin</button>
-    </nav>
+<nav>
+  <button onclick="showTab('analyse')">Analyse</button>
+  <button onclick="showTab('token')">Acheter Token</button>
+  <button onclick="showTab('admin')" id="adminBtn">Admin</button>
+</nav>
 
-    <!-- ANALYSE -->
-    <div id="analyse" class="tab">
-      <h2>Matières</h2>
-      <button onclick="addSubject()">Ajouter</button>
-      <div id="subjects"></div>
+<!-- ANALYSE -->
+<div id="analyse" class="tab">
+  <h2>Matières</h2>
+  <button onclick="addSubject()">Ajouter</button>
+  <div id="subjects"></div>
+</div>
+
+<!-- TOKEN -->
+<div id="token" class="tab hidden">
+  <h2>Acheter Token</h2>
+
+  <p>MORA - 2000Ar → 5 analyses</p>
+  <button onclick="selectToken()">Choisir</button>
+
+  <div id="paymentBox" class="hidden">
+    <p><b>Envoyer à :</b></p>
+    <p>Nom: ADMIN ANDY</p>
+    <p>Numéro: 0340000000</p>
+    <p>Opérateur: MVola</p>
+
+    <button class="yellow" onclick="showRef()">Confirmer paiement</button>
+
+    <div id="refBox" class="hidden">
+      <input id="refTrans" placeholder="Ref Trans">
+      <button class="green" onclick="confirmPayment()">Valider</button>
     </div>
-
-    <!-- TOKEN -->
-    <div id="token" class="tab hidden">
-      <h2>Acheter Token</h2>
-      <p>MORA - 2000Ar → 5 analyses</p>
-      <button onclick="buyToken()">Choisir</button>
-
-      <div id="paymentBox" class="hidden">
-        <p>Envoyer à ADMIN (MVola)</p>
-        <input id="refTrans" placeholder="Ref Trans">
-        <button onclick="confirmPayment()">Confirmer</button>
-      </div>
-    </div>
-
-    <!-- ADMIN -->
-    <div id="admin" class="tab hidden">
-      <h2>Dashboard Admin</h2>
-      <div id="adminLogs"></div>
-    </div>
-
   </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin" class="tab hidden">
+  <h2>Dashboard Admin</h2>
+  <div id="adminLogs"></div>
+</div>
+
+</div>
 </div>
 
 <script src="script.js"></script>
