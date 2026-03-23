@@ -1,138 +1,125 @@
-// --- Initialisation des données ---
-let userRole = 'USER';
-let db = JSON.parse(localStorage.getItem('appAI_DB')) || {
-    subjects: [],
-    tokens: 1,
-    pendingPurchases: []
-};
+let role = "";
+let tokens = 1;
 
-// --- Gestion de la connexion ---
-function setRole(role) {
-    userRole = role;
-    document.getElementById('btn-admin-role').className = role === 'ADMIN' ? 'selected' : '';
-    document.getElementById('btn-user-role').className = role === 'USER' ? 'selected' : '';
+function selectRole(r) {
+  role = r;
+  document.getElementById("choicePage").classList.add("hidden");
+  document.getElementById("loginPage").classList.remove("hidden");
 }
 
-function handleLogin() {
-    const u = document.getElementById('login-user').value;
-    const p = document.getElementById('login-pass').value;
+function login() {
+  const u = document.getElementById("username").value;
+  const p = document.getElementById("password").value;
 
-    if (userRole === 'ADMIN' && u === 'ADMIN' && p === 'Andy2030@@') {
-        startApp(true);
-    } else if (userRole === 'USER' && u === 'USER' && p === '123456') {
-        startApp(false);
-    } else {
-        alert("Identifiants incorrects !");
+  if (role === "admin" && u === "ADMIN" && p === "Andy2030@@") {
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("adminTab").classList.remove("hidden");
+  }
+
+  if (role === "user" && u === "USER" && p === "123456") {
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("userInfoPage").classList.remove("hidden");
+  }
+}
+
+function enterApp() {
+  document.getElementById("userInfoPage").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+}
+
+function showTab(tab) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.add("hidden"));
+  document.getElementById(tab).classList.remove("hidden");
+}
+
+function addSubject() {
+  let name = prompt("Nom matière ?");
+  let div = document.createElement("div");
+  div.className = "subject";
+  div.innerHTML = `
+    <h3>${name}</h3>
+    <input type="file" onchange="uploadFile(this)">
+    <button class="analyse hidden" onclick="analyse(this)">Analyse</button>
+    <button class="hidden" onclick="showResult(this)">Résumé - Quiz</button>
+  `;
+  document.getElementById("subjects").appendChild(div);
+}
+
+function uploadFile(input) {
+  let file = input.files[0];
+
+  if (file.size > 500 * 1024 * 1024) {
+    alert("Fichier trop lourd !");
+    return;
+  }
+
+  let btn = input.nextElementSibling;
+  let progress = 0;
+
+  let interval = setInterval(() => {
+    progress += 10;
+    if (progress >= 100) {
+      clearInterval(interval);
+      btn.classList.remove("hidden");
     }
+  }, 200);
 }
 
-function startApp(isAdmin) {
-    document.getElementById('login-screen').classList.remove('active');
-    document.getElementById('main-app').classList.add('active');
-    if (isAdmin) {
-        document.getElementById('nav-admin').classList.remove('hidden');
-        renderAdmin();
+function analyse(btn) {
+  if (tokens <= 0) {
+    alert("Plus de token !");
+    return;
+  }
+
+  tokens--;
+
+  let progress = 0;
+  let interval = setInterval(() => {
+    progress += 10;
+    if (progress >= 100) {
+      clearInterval(interval);
+      btn.classList.add("done");
+
+      let resultBtn = btn.nextElementSibling;
+      resultBtn.classList.remove("hidden");
+
+      let data = {
+        resume: "Résumé long du cours...",
+        quiz: [
+          {
+            q: "Question 1 ?",
+            correct: "Bonne réponse",
+            wrong: ["A", "B", "C"]
+          }
+        ]
+      };
+
+      localStorage.setItem("result", JSON.stringify(data));
     }
-    updateTokenUI();
-    renderSubjects();
+  }, 300);
 }
 
-// --- Navigation Onglets ---
-function changeTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.getElementById('tab-' + tabId).classList.add('active');
+function showResult(btn) {
+  let data = JSON.parse(localStorage.getItem("result"));
+
+  let html = `<h3>Résumé</h3><p>${data.resume}</p>`;
+  html += `<h3>Quiz</h3>`;
+
+  data.quiz.forEach(q => {
+    html += `<p>${q.q}</p>`;
+    html += `<p class="correct">${q.correct}</p>`;
+    q.wrong.forEach(w => html += `<p>${w}</p>`);
+  });
+
+  document.body.innerHTML = html;
 }
 
-// --- Logique Analyse & Gemini ---
-function triggerUpload() {
-    document.getElementById('file-input').click();
+function buyToken() {
+  document.getElementById("payment").classList.remove("hidden");
 }
 
-document.getElementById('file-input').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file && file.size <= 500 * 1024 * 1024) {
-        simulateProgress('up-progress', () => {
-            const btn = document.getElementById('btn-upload');
-            btn.innerText = "Upload Fini 100%";
-            btn.style.backgroundColor = "yellow";
-            btn.style.color = "black";
-            document.getElementById('btn-analyse').classList.remove('hidden');
-        });
-    } else {
-        alert("Fichier trop gros (>500Mo)");
-    }
-});
-
-async function startGeminiAnalysis() {
-    const key = document.getElementById('gemini-api-key').value;
-    if (!key) return alert("Veuillez entrer votre clé API Gemini à l'accueil.");
-    if (db.tokens <= 0) return alert("Tokens épuisés ! Achetez-en dans l'onglet Achat.");
-
-    simulateProgress('ai-progress', async () => {
-        const btn = document.getElementById('btn-analyse');
-        btn.innerText = "Analyse Finie 100%";
-        btn.style.backgroundColor = "green";
-        
-        // Appel API Gemini réel
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: "Fais un résumé long et un quiz QCM (1 bonne réponse rose vif, 3 fausses) sur ce cours." }] }]
-                })
-            });
-            const data = await response.json();
-            db.tokens--;
-            saveDB();
-            updateTokenUI();
-            
-            // Simulation de stockage du résultat
-            db.lastResult = {
-                resume: "<h1>Résumé du cours</h1><p>Contenu analysé par l'IA...</p>",
-                quiz: "<span class='question-title'>Question 1: ...</span><br><span class='correct-answer'>Rép A</span><br><span>Rép B</span>"
-            };
-            document.getElementById('results-zone').classList.remove('hidden');
-        } catch (e) { alert("Erreur API"); }
-    });
-}
-
-function showView(type) {
-    const display = document.getElementById('display-text');
-    display.innerHTML = type === 'resume' ? db.lastResult.resume : db.lastResult.quiz;
-}
-
-// --- Utilitaires ---
-function simulateProgress(id, callback) {
-    const div = document.getElementById(id);
-    const bar = div.querySelector('.bar');
-    const span = div.querySelector('span');
-    div.style.display = "block";
-    let p = 0;
-    let inv = setInterval(() => {
-        p += 5;
-        bar.style.width = p + "%";
-        span.innerText = p + "%";
-        if (p >= 100) { clearInterval(inv); callback(); }
-    }, 100);
-}
-
-function saveDB() { localStorage.setItem('appAI_DB', JSON.stringify(db)); }
-function updateTokenUI() { document.getElementById('token-count').innerText = db.tokens; }
-
-// --- Fonctions Admin ---
-function renderAdmin() {
-    const list = document.getElementById('admin-req-list');
-    list.innerHTML = db.pendingPurchases.map((r, i) => `
-        <tr><td>${r.user}</td><td>${r.type}</td><td>${r.ref}</td>
-        <td><button onclick="approve(${i})">+</button></td></tr>
-    `).join('');
-}
-
-function approve(i) {
-    db.tokens += db.pendingPurchases[i].qty;
-    db.pendingPurchases.splice(i, 1);
-    saveDB();
-    renderAdmin();
-    updateTokenUI();
+function confirmPayment() {
+  tokens += 5;
+  alert("Token ajouté !");
 }
