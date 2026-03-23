@@ -1,122 +1,50 @@
-// 🔑 METS TA CLE GEMINI ICI
-const API_KEY = "COLLE_TA_CLE_GEMINI_ICI";
+async function startAIAnalysis() {
+    const apiKey = document.getElementById('api-code').value;
+    if (!apiKey) return alert("Veuillez saisir votre Code API dans l'onglet Accueil.");
 
-let uploadedText = "";
-
-// ================= FILE READER =================
-
-async function readFile(file) {
-  if (file.type === "application/pdf") {
-    return await readPDF(file);
-  } else if (file.name.endsWith(".docx")) {
-    return await readWord(file);
-  } else {
-    return await file.text();
-  }
-}
-
-// PDF
-async function readPDF(file) {
-  const pdf = await pdfjsLib.getDocument(URL.createObjectURL(file)).promise;
-  let text = "";
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    let page = await pdf.getPage(i);
-    let content = await page.getTextContent();
-    content.items.forEach(item => text += item.str + " ");
-  }
-
-  return text;
-}
-
-// WORD
-async function readWord(file) {
-  let result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
-  return result.value;
-}
-
-// ================= UPLOAD =================
-
-async function uploadFile(e, el) {
-  let file = e.target.files[0];
-  if (!file) return;
-
-  if (file.size > 500 * 1024 * 1024) {
-    alert("Max 500Mo");
-    return;
-  }
-
-  let progress = el.parentElement.querySelector(".progress");
-
-  progress.innerText = "Lecture fichier...";
-
-  uploadedText = await readFile(file);
-
-  progress.innerText = "Fichier prêt ✔";
-
-  el.parentElement.querySelector(".actions").innerHTML =
-    `<button class="red" onclick="analyse(this)">Analyse</button>`;
-}
-
-// ================= GEMINI =================
-
-async function callGemini(prompt) {
-  let res = await fetch(
-    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
+    // Vérification des tokens (1 gratuit par jour ou tokens achetés)
+    if (userData.tokens <= 0) {
+        return alert("Vous n'avez plus de tokens. Veuillez en acheter dans l'onglet ACHAT.");
     }
-  );
 
-  let data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "Erreur IA";
-}
+    const btnAnalyze = document.getElementById('btn-analyze');
+    const progressBar = document.getElementById('analyze-progress');
+    const fill = progressBar.querySelector('.fill');
+    
+    progressBar.classList.remove('hidden');
+    btnAnalyze.disabled = true;
 
-// ================= ANALYSE =================
+    try {
+        // Simulation visuelle de progression pendant l'appel API
+        let prog = 0;
+        const interval = setInterval(() => {
+            if (prog < 90) prog += 2;
+            fill.style.width = prog + '%';
+        }, 200);
 
-async function analyse(btn) {
-  let box = btn.parentElement.parentElement.querySelector(".resultBox");
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: "Analyse ce texte et donne-moi un résumé long structuré avec des titres en gras et un quiz QCM de 10 à 30 questions (1 bonne réponse, 3 mauvaises). Format JSON attendu." }]
+                }]
+            })
+        });
 
-  box.innerHTML = `<p class="loading">Analyse en cours...</p>`;
+        const data = await response.json();
+        clearInterval(interval);
+        fill.style.width = '100%';
 
-  let resumePrompt = `
-  Résume ce cours de façon claire, structurée et éducative avec titres :
-  ${uploadedText}
-  `;
+        // Une fois fini, on déduis un token
+        userData.tokens -= 1;
+        saveData();
+        
+        displayResults(data);
+        btnAnalyze.style.backgroundColor = "green";
+        document.getElementById('results-area').classList.remove('hidden');
 
-  let quizPrompt = `
-  Crée un quiz de 10 questions avec 4 choix (1 correct, 3 faux) basé sur ce cours :
-  ${uploadedText}
-  `;
-
-  try {
-    let resume = await callGemini(resumePrompt);
-    let quiz = await callGemini(quizPrompt);
-
-    box.innerHTML = `
-      <button class="green" onclick="showResume()">Résumé</button>
-      <button class="green" onclick="showQuiz()">Quiz</button>
-
-      <div id="resumeContent" class="hidden">${resume}</div>
-      <div id="quizContent" class="hidden">${quiz}</div>
-    `;
-  } catch (e) {
-    box.innerHTML = "Erreur API Gemini";
-  }
-}
-
-// ================= DISPLAY =================
-
-function showResume() {
-  let res = document.getElementById("resumeContent");
-  res.classList.toggle("hidden");
-}
-
-function showQuiz() {
-  let quiz = document.getElementById("quizContent");
-  quiz.classList.toggle("hidden");
+    } catch (error) {
+        alert("Erreur lors de l'analyse : " + error.message);
+    }
 }
