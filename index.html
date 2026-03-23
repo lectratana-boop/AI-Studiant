@@ -3,21 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <title>Apps AI Cours</title>
+
 <link rel="stylesheet" href="style.css">
+
+<!-- PDF Reader -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
 </head>
 
 <body>
 
 <div class="app">
 
-<!-- CHOIX -->
 <div id="choicePage">
   <h1>Apps AI Cours</h1>
   <button onclick="selectRole('admin')">ADMIN</button>
   <button onclick="selectRole('user')">UTILISATEUR</button>
 </div>
 
-<!-- LOGIN -->
 <div id="loginPage" class="hidden">
   <h2>Connexion</h2>
   <input id="username" placeholder="User">
@@ -25,15 +28,13 @@
   <button onclick="login()">Login</button>
 </div>
 
-<!-- USER SETUP -->
 <div id="userSetup" class="hidden">
   <h2>Profil</h2>
   <input id="name" placeholder="Nom">
-  <input id="apiKey" placeholder="Code API">
+  <input id="apiKey" placeholder="Code API Gemini">
   <button onclick="saveUser()">Entrer</button>
 </div>
 
-<!-- APP -->
 <div id="mainApp" class="hidden">
 
 <nav>
@@ -42,26 +43,19 @@
   <button onclick="showTab('admin')" id="adminBtn">Admin</button>
 </nav>
 
-<!-- ANALYSE -->
 <div id="analyse" class="tab">
   <h2>Matières</h2>
   <button onclick="addSubject()">Ajouter</button>
   <div id="subjects"></div>
 </div>
 
-<!-- TOKEN -->
 <div id="token" class="tab hidden">
   <h2>Acheter Token</h2>
-
   <p>MORA - 2000Ar → 5 analyses</p>
   <button onclick="selectToken()">Choisir</button>
 
   <div id="paymentBox" class="hidden">
-    <p><b>Envoyer à :</b></p>
-    <p>Nom: ADMIN ANDY</p>
-    <p>Numéro: 0340000000</p>
-    <p>Opérateur: MVola</p>
-
+    <p>ADMIN ANDY - 0340000000 (MVola)</p>
     <button class="yellow" onclick="showRef()">Confirmer paiement</button>
 
     <div id="refBox" class="hidden">
@@ -71,7 +65,6 @@
   </div>
 </div>
 
-<!-- ADMIN -->
 <div id="admin" class="tab hidden">
   <h2>Dashboard Admin</h2>
   <div id="adminLogs"></div>
