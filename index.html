@@ -1,69 +1,115 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Resumer Cour AI</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apps AI Cours</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="app-container">
+        <section id="login-screen" class="screen active">
+            <div class="login-box">
+                <div class="role-icons">
+                    <div id="role-admin" class="role-btn" onclick="selectRole('ADMIN')">
+                        <img src="admin_icon.png" alt="Admin"><span>ADMIN</span>
+                    </div>
+                    <div id="role-user" class="role-btn selected" onclick="selectRole('USER')">
+                        <img src="user_icon.png" alt="User"><span>UTILISATEUR</span>
+                    </div>
+                </div>
+                <div class="inputs">
+                    <input type="text" id="login-id" placeholder="USER">
+                    <input type="password" id="login-pass" placeholder="Mot de passe">
+                    <button onclick="attemptLogin()">Se connecter</button>
+                </div>
+            </div>
+        </section>
 
-<!-- PAGE CHOIX -->
-<div id="choicePage" class="center">
-  <button onclick="selectRole('admin')" class="gold">ADMIN</button>
-  <button onclick="selectRole('user')">UTILISATEUR</button>
-</div>
+        <section id="main-app" class="screen">
+            <header><h1>Apps AI Cours</h1></header>
 
-<!-- LOGIN -->
-<div id="loginPage" class="hidden center">
-  <input id="username" placeholder="USER">
-  <input id="password" type="password" placeholder="Mot de passe">
-  <button onclick="login()">Connexion</button>
-</div>
+            <div id="tab-home" class="tab-content active">
+                <div class="welcome-card">
+                    <h2>Bienvenue sur Resumer Cour AI</h2>
+                    <div class="input-group">
+                        <label>Nom</label>
+                        <input type="text" id="user-name" placeholder="Ex: Andy222">
+                    </div>
+                    <div class="input-group">
+                        <label>Code API</label>
+                        <input type="text" id="user-api" placeholder="Fourni par l'admin">
+                    </div>
+                    <p class="token-info">Analyses restantes : <span id="token-display">1</span></p>
+                </div>
+            </div>
 
-<!-- USER INFO -->
-<div id="userInfoPage" class="hidden center">
-  <h2>Bienvenue sur Resumer Cour AI</h2>
-  <input id="name" placeholder="Nom">
-  <input id="apiKey" placeholder="Code API">
-  <button onclick="enterApp()">Entrer</button>
-</div>
+            <div id="tab-analyse" class="tab-content">
+                <div class="subject-manager">
+                    <input type="text" id="new-subject-name" placeholder="Nouvelle matière...">
+                    <button class="btn-add" onclick="addSubject()">+</button>
+                </div>
+                <div id="subjects-container"></div>
+                
+                <div id="active-analysis-zone" class="hidden">
+                    <div class="upload-box">
+                        <input type="file" id="file-picker" hidden accept=".pdf,.doc,.docx,.txt">
+                        <button id="btn-upload" class="btn-blue" onclick="triggerUpload()">Upload Max 500 Mo</button>
+                        <div id="load-up" class="loader"><div class="fill"></div><span>0%</span></div>
+                        
+                        <button id="btn-run-ai" class="btn-red hidden" onclick="runGeminiAI()">Analyse et résumer</button>
+                        <div id="load-ai" class="loader"><div class="fill"></div><span>0%</span></div>
+                    </div>
+                    
+                    <div id="final-buttons" class="hidden">
+                        <div class="res-quiz-nav">
+                            <button class="btn-green" onclick="toggleResult('resume')">Résumé</button>
+                            <button class="btn-green" onclick="toggleResult('quiz')">Quiz</button>
+                        </div>
+                        <div id="result-display" class="display-area"></div>
+                    </div>
+                </div>
+            </div>
 
-<!-- APP -->
-<div id="app" class="hidden">
+            <div id="tab-achat" class="tab-content">
+                <table class="token-table">
+                    <tr class="header"><td>Token</td><td>Vidiny</td><td>isa</td><td>Select</td></tr>
+                    <tr onclick="selectPack('Mora', 2000, 5)"><td>Mora</td><td>2000 Ar</td><td>5</td><td><input type="radio" name="tk"></td></tr>
+                    <tr onclick="selectPack('Premium', 5000, 15)"><td>Premium</td><td>5000 Ar</td><td>15</td><td><input type="radio" name="tk"></td></tr>
+                </table>
+                <div id="payment-details" class="hidden">
+                    <p>Envoyer au 0342994411 (Mvola/Airtel/Orange/Crypto)</p>
+                    <button class="btn-yellow" onclick="confirmPaymentStep1()">Confirmer</button>
+                    <input type="text" id="ref-trans" placeholder="Ref Trans Ex: 0350284">
+                    <button class="btn-green" onclick="submitPurchase()">Confirmer</button>
+                </div>
+            </div>
 
-  <!-- MENU -->
-  <nav>
-    <button onclick="showTab('analyse')">ANALYSE</button>
-    <button onclick="showTab('token')">ACHETER TOKEN</button>
-    <button onclick="showTab('admin')" id="adminTab" class="hidden">ADMIN</button>
-  </nav>
+            <div id="tab-admin" class="tab-content">
+                <div class="usage-chart">
+                    <div class="circle">75%<span>Taux consommé</span></div>
+                </div>
+                <table class="admin-table">
+                    <thead><tr><th>USER</th><th>Type TOKEN</th><th>Ref Trans</th><th>Ajout</th></tr></thead>
+                    <tbody id="admin-requests"></tbody>
+                </table>
+                <div id="admin-confirm-box" class="hidden">
+                    <table class="admin-table">
+                        <thead><tr><th>USER</th><th>Nbr token</th></tr></thead>
+                        <tbody id="confirm-list"></tbody>
+                    </table>
+                    <button class="btn-green" onclick="finalAdminValidate()">Confirmer</button>
+                </div>
+            </div>
 
-  <!-- ANALYSE -->
-  <div id="analyse" class="tab">
-    <h2>Matières</h2>
-    <button onclick="addSubject()">+</button>
-    <div id="subjects"></div>
-  </div>
-
-  <!-- TOKEN -->
-  <div id="token" class="tab hidden">
-    <h2>Acheter Token</h2>
-    <button onclick="buyToken()">MORA - 2000Ar (5 analyses)</button>
-    <div id="payment" class="hidden">
-      <p>Envoyer à : 0340000000 (MVola)</p>
-      <input id="ref" placeholder="Ref Trans">
-      <button onclick="confirmPayment()">Confirmer</button>
+            <nav class="bottom-menu">
+                <button onclick="showTab('home')"><img src="home_icon.png">Accueil</button>
+                <button onclick="showTab('analyse')"><img src="stats_icon.png">Analyse</button>
+                <button onclick="showTab('achat')"><img src="cart_icon.png">Achat</button>
+                <button id="nav-admin-btn" class="hidden" onclick="showTab('admin')"><img src="settings_icon.png">Admin</button>
+            </nav>
+        </section>
     </div>
-  </div>
-
-  <!-- ADMIN -->
-  <div id="admin" class="tab hidden">
-    <h2>Dashboard Admin</h2>
-    <div id="adminData"></div>
-  </div>
-
-</div>
-
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
